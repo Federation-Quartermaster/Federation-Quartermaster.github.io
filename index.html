@@ -418,6 +418,67 @@
                 badgeData.x = elmnt.offsetLeft; badgeData.y = elmnt.offsetTop;
             }
         }
+
+        // --- CANVAS EXPORT ---
+        async function generateDecal() {
+            if (selectedRack.length === 0) {
+                alert("Please add awards to the preview first.");
+                return;
+            }
+
+            const container = document.getElementById('live-preview-container');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+
+            try {
+                // 1. Draw Torso Base
+                const baseTorso = new Image();
+                baseTorso.crossOrigin = "Anonymous";
+                await new Promise(resolve => { baseTorso.onload = resolve; baseTorso.src = 'torso_forwebsite.png'; });
+                ctx.drawImage(baseTorso, 0, 0, canvas.width, canvas.height);
+
+                // 2. Draw Medals & Ribbons from the Grid
+                const gridDOM = document.getElementById('rack-grid');
+                const rackImages = Array.from(gridDOM.getElementsByTagName('img'));
+                
+                for (let i = 0; i < rackImages.length; i++) {
+                    const imgEl = rackImages[i];
+                    const img = new Image();
+                    img.crossOrigin = "Anonymous";
+                    await new Promise(resolve => { img.onload = resolve; img.src = imgEl.src; });
+                    
+                    const rect = imgEl.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    ctx.drawImage(img, rect.left - containerRect.left, rect.top - containerRect.top, imgEl.offsetWidth, imgEl.offsetHeight);
+                }
+
+                // 3. Draw Badges at Custom Coordinates
+                const badgeItems = selectedRack.filter(a => a.folder && a.folder.includes("Badges"));
+                for (let i = 0; i < badgeItems.length; i++) {
+                    const badge = badgeItems[i];
+                    const img = new Image();
+                    img.crossOrigin = "Anonymous";
+                    await new Promise(resolve => { img.onload = resolve; img.src = badge.activeImage; });
+                    ctx.drawImage(img, badge.x, badge.y, 50, 50); 
+                }
+
+                // Download
+                const exportData = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement('a');
+                downloadLink.href = exportData;
+                downloadLink.download = "Custom_Roblox_Uniform_Decal.png";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+            } catch (error) {
+                console.error("Error generating decal:", error);
+                alert("Failed to compile the image.");
+            }
+        }
     </script>
 </body>
 </html>
