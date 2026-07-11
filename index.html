@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group Awards Builder</title>
+    <title>Federation Award Builder</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,224 +11,411 @@
             color: #ffffff;
             margin: 0;
             padding: 20px;
-        }
-        
-        #builder-tray {
-            background-color: #2b2b36;
-            border: 2px dashed #555563;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            min-height: 100px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
         }
 
-        .tray-item {
-            position: relative;
+        /* --- LANDING PAGE --- */
+        #landing-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            width: 100%;
+        }
+
+        #landing-page h1 {
+            font-size: 32px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .branch-btn {
+            background-color: #3a3a45; color: white; border: 2px solid #555563;
+            padding: 20px 40px; margin: 10px; font-size: 24px; font-weight: bold;
+            border-radius: 8px; cursor: pointer; transition: 0.2s;
+            width: 100%; max-width: 500px;
+        }
+
+        .branch-btn:hover { background-color: #7289da; border-color: #7289da; }
+
+        /* --- BUILDER PAGE --- */
+        #builder-page {
+            display: none; /* Hidden until a branch is selected */
+            width: 100%;
+            max-width: 1200px;
+            flex-direction: row;
+            gap: 30px;
+        }
+
+        .sidebar {
+            flex: 1;
+            max-width: 400px;
+            height: 85vh;
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+
+        .preview-area {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- SCROLLING FRAMES (Accordions) --- */
+        details {
+            background-color: #2b2b36;
+            border: 1px solid #3a3a45;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        summary {
+            background-color: #3a3a45;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .frame-content {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* --- LIST ITEMS & OPTIONS --- */
+        .award-row {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #3a3a45;
+        }
+        
+        .award-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
             cursor: pointer;
         }
 
-        .tray-item img {
-            height: 40px; 
-            object-fit: contain;
+        .checkbox-label input { margin-right: 10px; width: 18px; height: 18px; }
+
+        .options-panel {
+            display: none; /* Hidden until checkbox is checked */
+            margin-top: 10px;
+            margin-left: 28px;
+            padding: 10px;
+            background-color: #1e1e24;
+            border-radius: 5px;
         }
 
-        .tray-item:hover::after {
-            content: "X";
-            position: absolute;
-            top: -5px; right: -5px;
-            background: red; color: white;
-            border-radius: 50%;
-            width: 20px; height: 20px;
-            font-size: 12px; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
-        }
+        .options-panel label { margin-right: 15px; cursor: pointer; }
 
-        .controls {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        button {
-            background-color: #3a3a45; color: white; border: none;
-            padding: 10px 20px; margin: 0 5px; font-size: 16px;
-            border-radius: 5px; cursor: pointer; transition: 0.2s;
-        }
-        button:hover { background-color: #555563; }
-        
-        .generate-btn {
-            background-color: #4CAF50;
+        /* --- SUBFOLDERS (Divisions/Ministries) --- */
+        .subfolder-title {
             font-weight: bold;
+            color: #7289da;
+            margin: 15px 0 10px 0;
+            border-bottom: 1px dashed #555563;
         }
-        .generate-btn:hover { background-color: #45a049; }
 
-        #gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px; max-width: 1200px; margin: 0 auto;
+        /* LIVE PREVIEW & RACK (From Previous Step) */
+        #live-preview-container {
+            position: relative; width: 420px; height: 420px;
+            background-image: url('torso_forwebsite.png'); background-size: cover;
+            border: 2px solid #555563; border-radius: 8px; overflow: hidden;
         }
-        
-        .award-card {
-            background-color: #2b2b36; border: 1px solid #3a3a45;
-            border-radius: 8px; padding: 15px; cursor: pointer;
-            text-align: center; transition: 0.2s;
+        #rack-grid {
+            position: absolute; top: 35%; right: 15%; width: 140px; 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; direction: rtl;
         }
-        
-        .award-card:hover {
-            background-color: #3a3a45;
-            border-color: #7289da;
-        }
-        
-        .award-card img {
-            max-width: 100%; height: 80px;
-            object-fit: contain; margin-bottom: 10px;
-        }
-        
-        .award-card h3 { margin: 0; font-size: 14px; }
+        .rack-item { width: 100%; height: auto; }
+        .badge-item { position: absolute; width: 50px; cursor: grab; user-select: none; }
+        .removable:hover { opacity: 0.5; outline: 2px solid red; cursor: pointer; }
+
+        .top-controls { display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; }
+        .back-btn { background-color: #555563; padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer;}
+        .generate-btn { background-color: #4CAF50; padding: 10px 20px; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;}
     </style>
 </head>
 <body>
 
-    <h2 style="text-align: center;">Rack Builder</h2>
-    
-    <div id="builder-tray">
-        <span id="empty-tray-text" style="color: #aaaaaa;">Select awards below to build your rack...</span>
+    <!-- SCREEN 1: Landing Page -->
+    <div id="landing-page">
+        <h1>Select Branch Below To Build Award Rack</h1>
+        <button class="branch-btn" onclick="openBranch('Government')">Government Rack Builder</button>
+        <button class="branch-btn" onclick="openBranch('Military')">Military Rack Builder</button>
+        <button class="branch-btn" onclick="openBranch('Miscellaneous')">Miscellaneous Rack Builder</button>
     </div>
 
-    <div class="controls">
-        <button onclick="filterAwards('all')">All</button>
-        <button onclick="filterAwards('medal')">Medals</button>
-        <button onclick="filterAwards('ribbon')">Ribbons</button>
-        <button class="generate-btn" onclick="generateDecal()">Export Rack Decal</button>
+    <!-- SCREEN 2: Builder Interface -->
+    <div id="builder-page">
+        <!-- Sidebar with Scrolling Frames -->
+        <div class="sidebar" id="frames-container">
+            <!-- Frames injected by JavaScript -->
+        </div>
+
+        <!-- Live Preview Area -->
+        <div class="preview-area">
+            <div class="top-controls">
+                <button class="back-btn" onclick="goBack()">&#8592; Change Branch</button>
+                <h2 id="branch-title" style="margin: 0;">Branch Rack</h2>
+                <button class="generate-btn" onclick="generateDecal()">Export Decal</button>
+            </div>
+            
+            <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">Click preview items to remove them. Drag Badges to position.</p>
+
+            <div id="live-preview-container">
+                <div id="rack-grid"></div>
+            </div>
+        </div>
     </div>
-    
-    <div id="gallery-grid"></div>
 
     <script>
-        let allAwards = [];
-        let selectedRack = []; 
-        
-        // Ribbon dimensions for the final output decal
-        const RIBBON_WIDTH = 150;
-        const RIBBON_HEIGHT = 45;
-        const COLUMNS_PER_ROW = 3; // Change this to 4 if you prefer wider racks
+        let allAwardsData = [];
+        let selectedRack = [];
+        let currentBranch = "";
 
+        // Simulated Fetch (Replace with fetch('awards.json'))
+        // Ensuring Federation Wide has Precedence 1, 2, and 3
         fetch('awards.json')
             .then(res => res.json())
-            .then(data => {
-                allAwards = data;
-                renderGallery(allAwards);
-            })
-            .catch(err => console.error("Ensure awards.json is valid:", err));
+            .then(data => { allAwardsData = data; })
+            .catch(err => console.error("Data not loaded. Error:", err));
 
-        function renderGallery(awards) {
-            const grid = document.getElementById('gallery-grid');
-            grid.innerHTML = ''; 
+        // --- NAVIGATION ---
+        function openBranch(branchName) {
+            currentBranch = branchName;
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('builder-page').style.display = 'flex';
+            document.getElementById('branch-title').innerText = `${branchName} Rack`;
             
-            awards.forEach(award => {
-                const card = document.createElement('div');
-                card.className = 'award-card';
-                card.innerHTML = `
-                    <img src="${award.image}" alt="${award.name}">
-                    <h3>${award.name}</h3>
-                `;
-                card.onclick = () => addToRack(award);
-                grid.appendChild(card);
-            });
+            selectedRack = []; // Clear rack when switching branches
+            renderPreview();
+            buildFrames();
         }
 
-        function filterAwards(category) {
-            if (category === 'all') renderGallery(allAwards);
-            else renderGallery(allAwards.filter(a => a.category === category));
+        function goBack() {
+            document.getElementById('landing-page').style.display = 'flex';
+            document.getElementById('builder-page').style.display = 'none';
         }
 
-        function addToRack(award) {
-            selectedRack.push(award);
-            renderTray();
-        }
+        // --- DYNAMIC FRAME GENERATOR ---
+        function buildFrames() {
+            const container = document.getElementById('frames-container');
+            container.innerHTML = '';
 
-        function removeFromRack(index) {
-            selectedRack.splice(index, 1);
-            renderTray();
-        }
-
-        function renderTray() {
-            const tray = document.getElementById('builder-tray');
-            tray.innerHTML = ''; 
-
-            if (selectedRack.length === 0) {
-                tray.innerHTML = '<span id="empty-tray-text" style="color: #aaaaaa;">Select awards below to build your rack...</span>';
-                return;
+            // 1. Always Build Federation Wide Frame First (Highest Priority)
+            const fedData = allAwardsData.filter(a => a.branch === "Federation Wide");
+            if (fedData.length > 0) {
+                container.appendChild(createFrame("Federation Wide Awards", groupAndSort(fedData)));
             }
 
-            selectedRack.forEach((award, index) => {
-                const item = document.createElement('div');
-                item.className = 'tray-item';
-                item.innerHTML = `<img src="${award.image}" alt="${award.name}" title="${award.name}">`;
-                item.onclick = () => removeFromRack(index);
-                tray.appendChild(item);
+            // 2. Build Selected Branch Frames
+            const branchData = allAwardsData.filter(a => a.branch === currentBranch);
+            
+            // Get unique folders for this branch (e.g., "Awards", "Badges", "Division Awards")
+            const folders = [...new Set(branchData.map(a => a.folder))];
+
+            folders.forEach(folderName => {
+                const folderData = branchData.filter(a => a.folder === folderName);
+                container.appendChild(createFrame(`${currentBranch} - ${folderName}`, groupAndSort(folderData)));
             });
         }
 
-        // The Engine that merges the images
-        async function generateDecal() {
-            if (selectedRack.length === 0) {
-                alert("Your rack is empty. Please select some awards first.");
-                return;
+        // Groups data by subFolder (Divisions) and sorts numerically
+        function groupAndSort(data) {
+            data.sort((a, b) => (a.precedence || 999) - (b.precedence || 999));
+            
+            const grouped = {};
+            data.forEach(item => {
+                const key = item.subFolder || "root";
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+            return grouped;
+        }
+
+        // Creates the <details> Accordion Frame
+        function createFrame(title, groupedData) {
+            const details = document.createElement('details');
+            details.open = title.includes("Federation"); // Open Federation by default
+            
+            const summary = document.createElement('summary');
+            summary.innerText = title;
+            details.appendChild(summary);
+
+            const content = document.createElement('div');
+            content.className = 'frame-content';
+
+            // Iterate through subFolders (Divisions) or 'root'
+            for (const [subFolder, items] of Object.entries(groupedData)) {
+                if (subFolder !== "root") {
+                    const subTitle = document.createElement('div');
+                    subTitle.className = 'subfolder-title';
+                    subTitle.innerText = subFolder;
+                    content.appendChild(subTitle);
+                }
+
+                items.forEach(award => {
+                    content.appendChild(createAwardRow(award));
+                });
             }
 
-            // Create an invisible canvas
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            details.appendChild(content);
+            return details;
+        }
 
-            // Calculate exact canvas size needed based on number of items
-            const rows = Math.ceil(selectedRack.length / COLUMNS_PER_ROW);
-            canvas.width = COLUMNS_PER_ROW * RIBBON_WIDTH;
-            canvas.height = rows * RIBBON_HEIGHT;
+        // Creates the Checkbox + Radio Options workflow
+        function createAwardRow(award) {
+            const row = document.createElement('div');
+            row.className = 'award-row';
 
-            // Load all images into memory first using Promises
-            const imagePromises = selectedRack.map(award => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    // Need crossOrigin if fetching from external URLs, fine for local relative paths
-                    img.crossOrigin = "Anonymous"; 
-                    img.onload = () => resolve(img);
-                    img.onerror = () => reject(new Error(`Failed to load ${award.image}`));
-                    img.src = award.image;
-                });
+            // Main Checkbox
+            const label = document.createElement('label');
+            label.className = 'checkbox-label';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `chk_${award.id}`;
+            
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(award.name));
+            row.appendChild(label);
+
+            // Options Panel (Medal vs Ribbon)
+            const isBadge = award.folder.includes("Badges");
+            const optionsPanel = document.createElement('div');
+            optionsPanel.className = 'options-panel';
+            optionsPanel.id = `opt_${award.id}`;
+
+            if (!isBadge) {
+                let html = '';
+                if (award.medalImage) html += `<label><input type="radio" name="type_${award.id}" value="medal" checked> Medal</label>`;
+                if (award.ribbonImage) html += `<label><input type="radio" name="type_${award.id}" value="ribbon" ${!award.medalImage ? 'checked' : ''}> Ribbon</label>`;
+                optionsPanel.innerHTML = html;
+                row.appendChild(optionsPanel);
+            }
+
+            // Checkbox Logic: Show options and update rack
+            checkbox.addEventListener('change', (e) => {
+                if (!isBadge) {
+                    optionsPanel.style.display = e.target.checked ? 'block' : 'none';
+                }
+                updateRackFromUI(award, e.target.checked);
             });
 
-            try {
-                const loadedImages = await Promise.all(imagePromises);
+            // Radio Logic: Update rack image if they switch between Medal/Ribbon
+            if (!isBadge) {
+                const radios = optionsPanel.querySelectorAll('input[type="radio"]');
+                radios.forEach(r => r.addEventListener('change', () => {
+                    if (checkbox.checked) updateRackFromUI(award, true);
+                }));
+            }
 
-                // Draw each image onto the canvas grid
-                loadedImages.forEach((img, index) => {
-                    const col = index % COLUMNS_PER_ROW;
-                    const row = Math.floor(index / COLUMNS_PER_ROW);
-                    
-                    const xOffset = col * RIBBON_WIDTH;
-                    const yOffset = row * RIBBON_HEIGHT;
+            return row;
+        }
 
-                    ctx.drawImage(img, xOffset, yOffset, RIBBON_WIDTH, RIBBON_HEIGHT);
+        // --- RACK LOGIC ---
+        function updateRackFromUI(award, isAdding) {
+            // Remove existing instance if it's there
+            selectedRack = selectedRack.filter(a => a.id !== award.id);
+
+            if (isAdding) {
+                const isBadge = award.folder.includes("Badges");
+                let imageToUse = award.image; // Default for badges
+
+                if (!isBadge) {
+                    // Find which radio is selected
+                    const selectedRadio = document.querySelector(`input[name="type_${award.id}"]:checked`);
+                    const type = selectedRadio ? selectedRadio.value : (award.medalImage ? 'medal' : 'ribbon');
+                    imageToUse = type === 'medal' ? award.medalImage : award.ribbonImage;
+                }
+
+                selectedRack.push({
+                    ...award,
+                    activeImage: imageToUse,
+                    x: isBadge ? 100 : null,
+                    y: isBadge ? 100 : null
                 });
+            }
+            renderPreview();
+        }
 
-                // Convert canvas to base64 PNG and trigger download
-                const exportData = canvas.toDataURL("image/png");
-                const downloadLink = document.createElement('a');
-                downloadLink.href = exportData;
-                downloadLink.download = "Custom_Roblox_Rack.png";
-                
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
+        // Handles removing from preview (syncs back to uncheck the box)
+        function removeFromRack(id) {
+            selectedRack = selectedRack.filter(item => item.id !== id);
+            const checkbox = document.getElementById(`chk_${id}`);
+            if (checkbox) {
+                checkbox.checked = false;
+                const optPanel = document.getElementById(`opt_${id}`);
+                if (optPanel) optPanel.style.display = 'none';
+            }
+            renderPreview();
+        }
 
-            } catch (error) {
-                console.error("Error generating decal:", error);
-                alert("There was a problem generating the image. Check the console for details.");
+        // Renders the Grid & Badges (Preserved from previous step)
+        function renderPreview() {
+            const container = document.getElementById('live-preview-container');
+            const rackGrid = document.getElementById('rack-grid');
+            
+            rackGrid.innerHTML = '';
+            container.querySelectorAll('.badge-item').forEach(b => b.remove());
+
+            const rackItems = selectedRack.filter(a => !a.folder.includes("Badges"));
+            const badgeItems = selectedRack.filter(a => a.folder.includes("Badges"));
+
+            // Sort by precedence (Federation 1,2,3 will naturally float to the top)
+            rackItems.sort((a, b) => a.precedence - b.precedence);
+
+            rackItems.forEach(item => {
+                const img = document.createElement('img');
+                img.src = item.activeImage;
+                img.className = 'rack-item removable';
+                img.title = item.name;
+                img.onclick = () => removeFromRack(item.id);
+                rackGrid.appendChild(img);
+            });
+
+            badgeItems.forEach(badge => {
+                const img = document.createElement('img');
+                img.src = badge.activeImage;
+                img.className = 'badge-item removable';
+                img.title = badge.name;
+                img.style.left = badge.x + 'px';
+                img.style.top = badge.y + 'px';
+                img.ondblclick = () => removeFromRack(badge.id);
+                makeDraggable(img, badge);
+                container.appendChild(img);
+            });
+        }
+
+        // Drag and Drop (Preserved)
+        function makeDraggable(elmnt, badgeData) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            elmnt.onmousedown = (e) => {
+                e.preventDefault();
+                pos3 = e.clientX; pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            };
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+                pos3 = e.clientX; pos4 = e.clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+            function closeDragElement() {
+                document.onmouseup = null; document.onmousemove = null;
+                badgeData.x = elmnt.offsetLeft; badgeData.y = elmnt.offsetTop;
             }
         }
     </script>
