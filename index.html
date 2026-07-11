@@ -617,6 +617,12 @@
             const totalStdRibbonRows = Math.ceil(standardRibbons.length / 3);
 
             standardRibbons.forEach((ribbon, index) => {
+                // THIS is the part that got deleted!
+                const img = document.createElement('img');
+                img.src = ribbon.activeImage;
+                img.className = 'rack-item removable ribbon-item';
+                img.title = ribbon.name;
+                
                 const { row, col, itemsInThisRow } = getGridLayout(index, standardRibbons.length, 3);
                 const shiftX = ((3 - itemsInThisRow) * 16) / 2; 
                 const yOffset = (totalStdRibbonRows - 1 - row) * 4;
@@ -642,13 +648,17 @@
                 img.style.zIndex = 500 - index;
                 container.appendChild(img);
             });
-
             // 1B. SMALL RIBBONS (Perspective Left, 12x4, Max 4)
             const smallRibbonAnchorX = 2;
             const smallRibbonAnchorY = leftPocketHasMedals ? 34 : 36;
             const totalSmallRibbonRows = Math.ceil(smallRibbons.length / 4);
 
             smallRibbons.forEach((ribbon, index) => {
+                const img = document.createElement('img');
+                img.src = ribbon.activeImage;
+                img.className = 'rack-item removable ribbon-item';
+                img.title = ribbon.name;
+                
                 const { row, col, itemsInThisRow } = getGridLayout(index, smallRibbons.length, 4);
                 const shiftX = ((4 - itemsInThisRow) * 12) / 2;
                 const yOffset = (totalSmallRibbonRows - 1 - row) * 4;
@@ -677,6 +687,11 @@
 
             // 2. MEDALS (Natural Size, Overlap Spacing 6px, Max 6)
             medals.forEach((medal, index) => {
+                const img = document.createElement('img');
+                img.src = medal.activeImage;
+                img.className = 'rack-item removable medal-item';
+                img.title = medal.name;
+                
                 const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
                 const shiftX = ((6 - itemsInThisRow) * 6) / 2;
                 const baseLeft = medalAnchorX + (col * 6) + shiftX;
