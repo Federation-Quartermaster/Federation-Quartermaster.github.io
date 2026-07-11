@@ -187,7 +187,6 @@
                 <button class="back-btn" onclick="goBack()">&#8592; Change Branch</button>
                 <h2 id="branch-title" style="margin: 0; flex-grow: 1; text-align: center;">Branch Rack</h2>
                 
-                <!-- NEW TORSO SELECTOR -->
                 <div style="display: flex; gap: 10px; align-items: center; background: #2b2b36; padding: 5px 10px; border-radius: 5px;">
                     <label style="font-size: 14px;">Uniform Base:</label>
                     <select id="torso-select" onchange="updateTorsoBase()" style="background: #3a3a45; color: white; border: 1px solid #555563; padding: 5px;">
@@ -196,6 +195,10 @@
                     </select>
                     <input type="file" id="torso-upload" accept="image/png, image/jpeg" style="display:none;" onchange="handleTorsoUpload(event)">
                 </div>
+
+                <!-- NEW LOCK BUTTONS -->
+                <button id="lock-medals-btn" style="background-color: #555563; padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer;" onclick="toggleLock('medals')">🔓 Lock Medals</button>
+                <button id="lock-ribbons-btn" style="background-color: #555563; padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer;" onclick="toggleLock('ribbons')">🔓 Lock Ribbons</button>
 
                 <button class="generate-btn" onclick="generateDecal()">Export Decal</button>
             </div>
@@ -210,6 +213,11 @@
     </div>
 
     <script>
+        // NEW GLOBALS FOR LOCKING & DRAGGING
+        let isMedalsLocked = false;
+        let isRibbonsLocked = false;
+        let medalsOffsetX = 0, medalsOffsetY = 0;
+        let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
         let allAwardsData = [];
         let selectedRack = [];
         let currentBranch = "";
@@ -459,16 +467,74 @@
 
         // --- DYNAMIC RENDERING ALGORITHM ---
         // --- DYNAMIC RENDERING ALGORITHM ---
+        // --- LOCK BUTTON HANDLER ---
+        function toggleLock(category) {
+            if (category === 'medals') {
+                isMedalsLocked = !isMedalsLocked;
+                const btn = document.getElementById('lock-medals-btn');
+                btn.innerHTML = isMedalsLocked ? '🔒 Medals Locked (Drag to Move)' : '🔓 Lock Medals';
+                btn.style.backgroundColor = isMedalsLocked ? '#d9534f' : '#555563';
+            } else {
+                isRibbonsLocked = !isRibbonsLocked;
+                const btn = document.getElementById('lock-ribbons-btn');
+                btn.innerHTML = isRibbonsLocked ? '🔒 Ribbons Locked (Drag to Move)' : '🔓 Lock Ribbons';
+                btn.style.backgroundColor = isRibbonsLocked ? '#d9534f' : '#555563';
+            }
+            renderPreview();
+        }
+
+        // --- GROUP DRAG ENGINE ---
+        function makeCategoryDraggable(el, category) {
+            let startX, startY;
+            
+            el.onmousedown = function(e) {
+                e.preventDefault();
+                startX = e.clientX;
+                startY = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            };
+
+            function elementDrag(e) {
+                e.preventDefault();
+                let dx = e.clientX - startX;
+                let dy = e.clientY - startY;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Applies the drag movement live to every single item in the locked category
+                if (category === 'medals') {
+                    medalsOffsetX += dx;
+                    medalsOffsetY += dy;
+                    document.querySelectorAll('.medal-item').forEach(img => {
+                        img.style.left = (parseFloat(img.style.left) + dx) + 'px';
+                        img.style.top = (parseFloat(img.style.top) + dy) + 'px';
+                    });
+                } else if (category === 'ribbons') {
+                    ribbonsOffsetX += dx;
+                    ribbonsOffsetY += dy;
+                    document.querySelectorAll('.ribbon-item').forEach(img => {
+                        img.style.left = (parseFloat(img.style.left) + dx) + 'px';
+                        img.style.top = (parseFloat(img.style.top) + dy) + 'px';
+                    });
+                }
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        // --- DYNAMIC RENDERING ALGORITHM ---
         function renderPreview() {
             const container = document.getElementById('live-preview-container');
-            
-            // Clean up old items, leave torso base
             container.querySelectorAll('.rack-item, .badge-item').forEach(b => b.remove());
 
             const rackItems = selectedRack.filter(a => !a.folder.includes("Badges"));
             const badgeItems = selectedRack.filter(a => a.folder.includes("Badges"));
 
-            // Advanced Sort
+            // Advanced Sort by Precedence
             rackItems.sort((a, b) => {
                 if (!a.subFolder && b.subFolder) return -1;
                 if (a.subFolder && !b.subFolder) return 1;
@@ -481,59 +547,87 @@
                 }
             });
 
-            const pureRibbons = []; 
-            const stdRibbons = [];  
+            // Grouping
+            const allRibbons = []; 
             const medals = [];      
 
             rackItems.forEach(award => {
                 const isMedalVariant = award.activeImage === award.medalImage;
                 const hasMedalVariant = !!award.medalImage;
 
-                if (!hasMedalVariant) pureRibbons.push(award); 
-                else if (!isMedalVariant) stdRibbons.push(award);
-                else medals.push(award);
+                // Any pure ribbon or standard ribbon gets grouped together
+                if (!hasMedalVariant || !isMedalVariant) {
+                    allRibbons.push(award);
+                } else {
+                    medals.push(award);
+                }
             });
 
-            const hasStdRibbons = stdRibbons.length > 0;
+            const hasMedals = medals.length > 0;
+            const hasRibbons = allRibbons.length > 0;
+            const SCALE = 4; // 128 to 512 Workspace Multiplier
 
-            // SCALED COORDINATES (4x for 512px container)
-            const SCALE = 4;
-            const LEFT_POCKET_X = 20 * SCALE;  
-            const LEFT_POCKET_Y = 65 * SCALE;
-            const RIGHT_POCKET_X = 72 * SCALE; 
-            const RIGHT_POCKET_Y = 65 * SCALE;
-            const ABOVE_RIGHT_Y = 40 * SCALE;
+            // 1. RENDER RIBBONS (Building Upwards)
+            const ribbonAnchorX = 78;
+            const ribbonAnchorY = hasMedals ? 34 : 36;
+            const totalRibbonRows = Math.ceil(allRibbons.length / 3);
 
-            // 1. PURE RIBBONS (Above Perspective Right Pocket)
-            renderRibbonGrid(pureRibbons, RIGHT_POCKET_X, ABOVE_RIGHT_Y, container, SCALE);
-
-            // 2. STANDARD RIBBONS (Perspective Right Pocket)
-            renderRibbonGrid(stdRibbons, RIGHT_POCKET_X, RIGHT_POCKET_Y, container, SCALE);
-
-            // 3. MEDALS & OVERLAP LOGIC
-            const medalAnchorX = hasStdRibbons ? LEFT_POCKET_X : RIGHT_POCKET_X;
-            const medalAnchorY = (!hasStdRibbons && pureRibbons.length > 0) ? RIGHT_POCKET_Y : LEFT_POCKET_Y;
-
-            medals.forEach((medal, index) => {
+            allRibbons.forEach((ribbon, index) => {
                 const img = document.createElement('img');
-                img.src = medal.activeImage;
-                img.className = 'rack-item removable';
-                img.title = medal.name;
-                img.onclick = () => removeFromRack(medal.id);
+                img.src = ribbon.activeImage;
+                img.className = 'rack-item removable ribbon-item';
+                img.title = ribbon.name;
                 
-                const row = Math.floor(index / 6);
-                const col = index % 6;
+                if (isRibbonsLocked) {
+                    img.style.cursor = 'grab';
+                    makeCategoryDraggable(img, 'ribbons');
+                } else {
+                    img.onclick = () => removeFromRack(ribbon.id);
+                }
                 
-                // Base 6px overlap multiplied by SCALE
-                img.style.left = `${medalAnchorX + (col * (6 * SCALE))}px`;
-                img.style.top = `${medalAnchorY + (row * (6 * SCALE))}px`;
-                img.style.zIndex = 1000 - index; 
-                img.style.width = `${14 * SCALE}px`; 
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+                
+                // Calculates Y axis so the highest precedence is at the top, and bottom is at Y=36
+                const yOffset = (totalRibbonRows - 1 - row) * 6;
+                
+                img.style.left = `${(ribbonAnchorX + (col * 15)) * SCALE + ribbonsOffsetX}px`; 
+                img.style.top = `${(ribbonAnchorY - yOffset) * SCALE + ribbonsOffsetY}px`; 
+                img.style.width = `${14 * SCALE}px`;
+                img.style.zIndex = 500 - index;
                 
                 container.appendChild(img);
             });
 
-            // 4. BADGES
+            // 2. RENDER MEDALS (Building Downwards)
+            const medalAnchorX = hasRibbons ? 1 : 77;
+            const medalAnchorY = 36;
+
+            medals.forEach((medal, index) => {
+                const img = document.createElement('img');
+                img.src = medal.activeImage;
+                img.className = 'rack-item removable medal-item';
+                img.title = medal.name;
+                
+                if (isMedalsLocked) {
+                    img.style.cursor = 'grab';
+                    makeCategoryDraggable(img, 'medals');
+                } else {
+                    img.onclick = () => removeFromRack(medal.id);
+                }
+                
+                const row = Math.floor(index / 6);
+                const col = index % 6;
+                
+                img.style.left = `${(medalAnchorX + (col * 6)) * SCALE + medalsOffsetX}px`;
+                img.style.top = `${(medalAnchorY + (row * 6)) * SCALE + medalsOffsetY}px`;
+                img.style.width = `${14 * SCALE}px`;
+                img.style.zIndex = 1000 - index; 
+                
+                container.appendChild(img);
+            });
+
+            // 3. RENDER BADGES
             badgeItems.forEach(badge => {
                 const img = document.createElement('img');
                 img.src = badge.activeImage;
