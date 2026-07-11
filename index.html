@@ -132,9 +132,13 @@
             background-image: url('torso_forwebsite.png'); background-size: cover;
             border: 2px solid #555563; border-radius: 8px; overflow: hidden;
         }
-        #rack-grid {
+        #medal-grid {
+            position: absolute; top: 35%; left: 15%; width: 140px; 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; direction: ltr;
+        }
+        #ribbon-grid {
             position: absolute; top: 35%; right: 15%; width: 140px; 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; direction: rtl;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; direction: ltr;
         }
         .rack-item { width: 100%; height: auto; }
         .badge-item { position: absolute; width: 50px; cursor: grab; user-select: none; }
@@ -173,7 +177,8 @@
             <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">Click preview items to remove them. Drag Badges to position.</p>
 
             <div id="live-preview-container">
-                <div id="rack-grid"></div>
+                <div id="medal-grid"></div>
+                <div id="ribbon-grid"></div>
             </div>
         </div>
     </div>
@@ -332,15 +337,39 @@
 
             if (isAdding) {
                 const isBadge = award.folder.includes("Badges");
+                const hasOptions = award.medalImage || award.ribbonImage;
                 let imageToUse = award.image; 
 
-                if (!isBadge) {
+                if (!isBadge && hasOptions) {
                     const selectedRadio = document.querySelector(`input[name="type_${award.id}"]:checked`);
                     const type = selectedRadio ? selectedRadio.value : (award.medalImage ? 'medal' : 'ribbon');
                     imageToUse = type === 'medal' ? award.medalImage : award.ribbonImage;
                 }
 
-                // If this is a Division/Ministry, record its activation order if not already tracked
+                // --- 3. VARIANT AUTO-UNCHECK LOGIC ---
+                // Looks for standard tier suffixes to prevent wiping out Campaign Citations
+                const variantSuffixes = ['Bronze', 'Silver', 'Gold', 'Commander', 'Member', 'Officer'];
+                const nameParts = award.name.split(' - ');
+                
+                if (nameParts.length > 1 && variantSuffixes.includes(nameParts[1])) {
+                    const baseName = nameParts[0];
+                    const existingVariantIndex = selectedRack.findIndex(a => {
+                        const aParts = a.name.split(' - ');
+                        return aParts.length > 1 && aParts[0] === baseName && variantSuffixes.includes(aParts[1]);
+                    });
+                    
+                    if (existingVariantIndex !== -1) {
+                        const existingId = selectedRack[existingVariantIndex].id;
+                        selectedRack.splice(existingVariantIndex, 1); // Remove old tier from array
+                        
+                        // Uncheck the UI visually
+                        const checkbox = document.getElementById(`chk_${existingId}`);
+                        if (checkbox) checkbox.checked = false;
+                        const optPanel = document.getElementById(`opt_${existingId}`);
+                        if (optPanel) optPanel.style.display = 'none';
+                    }
+                }
+
                 if (award.subFolder && !activeSubFoldersOrder.includes(award.subFolder)) {
                     activeSubFoldersOrder.push(award.subFolder);
                 }
@@ -352,7 +381,6 @@
                     y: isBadge ? 100 : null
                 });
             } else {
-                // If removing, check if we need to clear the subfolder from the active order
                 if (award.subFolder) {
                     const stillHasSubFolder = selectedRack.some(a => a.subFolder === award.subFolder);
                     if (!stillHasSubFolder) {
@@ -379,46 +407,43 @@
         // --- RENDER & SORT LOGIC ---
         function renderPreview() {
             const container = document.getElementById('live-preview-container');
-            const rackGrid = document.getElementById('rack-grid');
+            const medalGrid = document.getElementById('medal-grid');
+            const ribbonGrid = document.getElementById('ribbon-grid');
             
-            rackGrid.innerHTML = '';
+            medalGrid.innerHTML = '';
+            ribbonGrid.innerHTML = '';
             container.querySelectorAll('.badge-item').forEach(b => b.remove());
 
             const rackItems = selectedRack.filter(a => !a.folder.includes("Badges"));
             const badgeItems = selectedRack.filter(a => a.folder.includes("Badges"));
 
-            // ADVANCED SORTING ENGINE
+            // 1. Placement Order fix (now LTR by default from CSS) + Precedence Sort
             rackItems.sort((a, b) => {
-                // 1. Standard Awards (No Subfolder) ALWAYS go before Divisions
                 if (!a.subFolder && b.subFolder) return -1;
                 if (a.subFolder && !b.subFolder) return 1;
-
-                // 2. If both are Standard Awards, sort by normal Precedence (1, 2, 3...)
-                if (!a.subFolder && !b.subFolder) {
-                    return a.precedence - b.precedence;
-                }
-
-                // 3. If both are Division Awards, check which Division was activated first
+                if (!a.subFolder && !b.subFolder) return a.precedence - b.precedence;
                 if (a.subFolder && b.subFolder) {
                     const aOrder = activeSubFoldersOrder.indexOf(a.subFolder);
                     const bOrder = activeSubFoldersOrder.indexOf(b.subFolder);
-                    
-                    if (aOrder !== bOrder) {
-                        return aOrder - bOrder; // Sort by Division Activation Order
-                    } else {
-                        // 4. Same Division? Sort by their Internal Precedence
-                        return a.precedence - b.precedence;
-                    }
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+                    return a.precedence - b.precedence;
                 }
             });
 
+            // 2. Route Medals Left, Ribbons Right
             rackItems.forEach(item => {
                 const img = document.createElement('img');
                 img.src = item.activeImage;
                 img.className = 'rack-item removable';
                 img.title = item.name;
                 img.onclick = () => removeFromRack(item.id);
-                rackGrid.appendChild(img);
+                
+                // If the active image matches the assigned medalImage, push to left grid
+                if (item.activeImage === item.medalImage) {
+                    medalGrid.appendChild(img);
+                } else {
+                    ribbonGrid.appendChild(img);
+                }
             });
 
             badgeItems.forEach(badge => {
@@ -471,15 +496,15 @@
             canvas.height = container.offsetHeight;
 
             try {
-                // 1. Draw Torso Base
                 const baseTorso = new Image();
                 baseTorso.crossOrigin = "Anonymous";
                 await new Promise(resolve => { baseTorso.onload = resolve; baseTorso.src = 'torso_forwebsite.png'; });
                 ctx.drawImage(baseTorso, 0, 0, canvas.width, canvas.height);
 
-                // 2. Draw Medals & Ribbons from the Grid
-                const gridDOM = document.getElementById('rack-grid');
-                const rackImages = Array.from(gridDOM.getElementsByTagName('img'));
+                // Collect images from BOTH the Medal Grid and Ribbon Grid
+                const medalImages = Array.from(document.getElementById('medal-grid').getElementsByTagName('img'));
+                const ribbonImages = Array.from(document.getElementById('ribbon-grid').getElementsByTagName('img'));
+                const rackImages = [...medalImages, ...ribbonImages];
                 
                 for (let i = 0; i < rackImages.length; i++) {
                     const imgEl = rackImages[i];
@@ -492,7 +517,6 @@
                     ctx.drawImage(img, rect.left - containerRect.left, rect.top - containerRect.top, imgEl.offsetWidth, imgEl.offsetHeight);
                 }
 
-                // 3. Draw Badges at Custom Coordinates
                 const badgeItems = selectedRack.filter(a => a.folder && a.folder.includes("Badges"));
                 for (let i = 0; i < badgeItems.length; i++) {
                     const badge = badgeItems[i];
@@ -502,7 +526,6 @@
                     ctx.drawImage(img, badge.x, badge.y, 50, 50); 
                 }
 
-                // Download
                 const exportData = canvas.toDataURL("image/png");
                 const downloadLink = document.createElement('a');
                 downloadLink.href = exportData;
