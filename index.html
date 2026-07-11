@@ -126,12 +126,11 @@
             border-bottom: 1px dashed #555563;
         }
 
-        /* LIVE PREVIEW & RACK (From Previous Step) */
-        /* LIVE PREVIEW & 128x128 FRAME */
+        /* LIVE PREVIEW & 512x512 FRAME */
         #live-preview-container {
             position: relative; 
-            width: 128px; 
-            height: 128px;
+            width: 512px; 
+            height: 512px;
             border: 2px solid #555563; 
             border-radius: 4px; 
             overflow: hidden;
@@ -459,6 +458,7 @@
         }
 
         // --- DYNAMIC RENDERING ALGORITHM ---
+        // --- DYNAMIC RENDERING ALGORITHM ---
         function renderPreview() {
             const container = document.getElementById('live-preview-container');
             
@@ -481,43 +481,37 @@
                 }
             });
 
-            // GROUPING FOR PLACEMENT LOGIC
-            const pureRibbons = []; // Division ribbons, citations (No medal options)
-            const stdRibbons = [];  // Ribbon variants of Medals
-            const medals = [];      // Medal variants
+            const pureRibbons = []; 
+            const stdRibbons = [];  
+            const medals = [];      
 
             rackItems.forEach(award => {
                 const isMedalVariant = award.activeImage === award.medalImage;
                 const hasMedalVariant = !!award.medalImage;
 
-                if (!hasMedalVariant) {
-                    pureRibbons.push(award); 
-                } else if (!isMedalVariant) {
-                    stdRibbons.push(award);
-                } else {
-                    medals.push(award);
-                }
+                if (!hasMedalVariant) pureRibbons.push(award); 
+                else if (!isMedalVariant) stdRibbons.push(award);
+                else medals.push(award);
             });
 
             const hasStdRibbons = stdRibbons.length > 0;
 
-            // BASE COORDINATES (128x128 Torso Anchors)
-            const LEFT_POCKET_X = 20;  // Perspective Left (Wearer's Right)
-            const LEFT_POCKET_Y = 65;
-            const RIGHT_POCKET_X = 72; // Perspective Right (Wearer's Left)
-            const RIGHT_POCKET_Y = 65;
-            const ABOVE_RIGHT_Y = 40;
+            // SCALED COORDINATES (4x for 512px container)
+            const SCALE = 4;
+            const LEFT_POCKET_X = 20 * SCALE;  
+            const LEFT_POCKET_Y = 65 * SCALE;
+            const RIGHT_POCKET_X = 72 * SCALE; 
+            const RIGHT_POCKET_Y = 65 * SCALE;
+            const ABOVE_RIGHT_Y = 40 * SCALE;
 
             // 1. PURE RIBBONS (Above Perspective Right Pocket)
-            renderRibbonGrid(pureRibbons, RIGHT_POCKET_X, ABOVE_RIGHT_Y, container);
+            renderRibbonGrid(pureRibbons, RIGHT_POCKET_X, ABOVE_RIGHT_Y, container, SCALE);
 
             // 2. STANDARD RIBBONS (Perspective Right Pocket)
-            renderRibbonGrid(stdRibbons, RIGHT_POCKET_X, RIGHT_POCKET_Y, container);
+            renderRibbonGrid(stdRibbons, RIGHT_POCKET_X, RIGHT_POCKET_Y, container, SCALE);
 
             // 3. MEDALS & OVERLAP LOGIC
-            // If Standard Ribbons exist -> Move Medals to Left Pocket. Else -> Stay Right.
             const medalAnchorX = hasStdRibbons ? LEFT_POCKET_X : RIGHT_POCKET_X;
-            // Shift Y slightly if Medals are sharing the Right Pocket area with Pure Ribbons
             const medalAnchorY = (!hasStdRibbons && pureRibbons.length > 0) ? RIGHT_POCKET_Y : LEFT_POCKET_Y;
 
             medals.forEach((medal, index) => {
@@ -527,16 +521,14 @@
                 img.title = medal.name;
                 img.onclick = () => removeFromRack(medal.id);
                 
-                // 6px Overlap Formula
                 const row = Math.floor(index / 6);
                 const col = index % 6;
                 
-                img.style.left = `${medalAnchorX + (col * 6)}px`;
-                img.style.top = `${medalAnchorY + (row * 6)}px`;
-                
-                // Priority Z-Index: 1000 - index ensures higher priority is physically on top
+                // Base 6px overlap multiplied by SCALE
+                img.style.left = `${medalAnchorX + (col * (6 * SCALE))}px`;
+                img.style.top = `${medalAnchorY + (row * (6 * SCALE))}px`;
                 img.style.zIndex = 1000 - index; 
-                img.style.width = '14px'; // Base width scaled for 128x128
+                img.style.width = `${14 * SCALE}px`; 
                 
                 container.appendChild(img);
             });
@@ -547,9 +539,9 @@
                 img.src = badge.activeImage;
                 img.className = 'badge-item removable';
                 img.title = badge.name;
-                img.style.width = '16px'; 
-                img.style.left = (badge.x !== null ? badge.x : 56) + 'px'; // Center default for 128 scale
-                img.style.top = (badge.y !== null ? badge.y : 10) + 'px';
+                img.style.width = `${16 * SCALE}px`; 
+                img.style.left = (badge.x !== null ? badge.x : (56 * SCALE)) + 'px'; 
+                img.style.top = (badge.y !== null ? badge.y : (10 * SCALE)) + 'px';
                 img.style.zIndex = 2000;
                 img.ondblclick = () => removeFromRack(badge.id);
                 makeDraggable(img, badge);
@@ -557,8 +549,8 @@
             });
         }
 
-        // Helper to format ribbons cleanly (3 per row, standard gap)
-        function renderRibbonGrid(ribbonArray, startX, startY, container) {
+        // Passes SCALE multiplier to gap sizing
+        function renderRibbonGrid(ribbonArray, startX, startY, container, SCALE) {
             ribbonArray.forEach((ribbon, index) => {
                 const img = document.createElement('img');
                 img.src = ribbon.activeImage;
@@ -569,15 +561,15 @@
                 const row = Math.floor(index / 3);
                 const col = index % 3;
                 
-                img.style.left = `${startX + (col * 15)}px`; // 15px gap for ribbons
-                img.style.top = `${startY + (row * 6)}px`; 
-                img.style.width = '14px';
+                // Base 15px/6px gaps multiplied by SCALE
+                img.style.left = `${startX + (col * (15 * SCALE))}px`; 
+                img.style.top = `${startY + (row * (6 * SCALE))}px`; 
+                img.style.width = `${14 * SCALE}px`;
                 img.style.zIndex = 500 - index;
                 
                 container.appendChild(img);
             });
         }
-
         // Drag and Drop (Preserved)
         function makeDraggable(elmnt, badgeData) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -602,6 +594,7 @@
 
         // --- CANVAS EXPORT ---
         // --- 128x128 CANVAS EXPORTER ---
+        // --- 128x128 CANVAS EXPORTER ---
         async function generateDecal() {
             if (selectedRack.length === 0) {
                 alert("Please add awards to the preview first.");
@@ -612,29 +605,31 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Force pure 128x128 Output
+            // STRICTLY enforce the 128x128 export size
             canvas.width = 128;
             canvas.height = 128;
 
             try {
-                // 1. Draw Selected Torso
-                const baseTorso = document.getElementById('torso-img');
-                ctx.drawImage(baseTorso, 0, 0, 128, 128);
-
-                // 2. Fetch all rendered items, sort by Z-Index so they draw back-to-front
+                // NOTE: The torso drawing code has been completely deleted here.
+                // The canvas will remain completely transparent behind the awards.
+                
                 const domItems = Array.from(container.querySelectorAll('.rack-item, .badge-item'));
                 domItems.sort((a, b) => parseInt(a.style.zIndex || 0) - parseInt(b.style.zIndex || 0));
                 
+                const SCALE = 4; // Divider to convert DOM 512px sizing back to 128px export sizing
+
                 for (let i = 0; i < domItems.length; i++) {
                     const imgEl = domItems[i];
                     const img = new Image();
                     img.crossOrigin = "Anonymous";
                     await new Promise(resolve => { img.onload = resolve; img.src = imgEl.src; });
                     
-                    const left = parseFloat(imgEl.style.left || 0);
-                    const top = parseFloat(imgEl.style.top || 0);
-                    const width = imgEl.offsetWidth || 14;
-                    // Calculate proportional height to prevent squishing
+                    // Divide all positional values by the SCALE to compress it perfectly to 128x128
+                    const left = parseFloat(imgEl.style.left || 0) / SCALE;
+                    const top = parseFloat(imgEl.style.top || 0) / SCALE;
+                    const width = (imgEl.offsetWidth || (14 * SCALE)) / SCALE;
+                    
+                    // Calculate height based on proportional width scale to prevent distortion
                     const height = Math.round(width * (img.height / img.width)) || 14; 
                     
                     ctx.drawImage(img, left, top, width, height);
