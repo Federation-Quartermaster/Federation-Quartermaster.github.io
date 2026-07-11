@@ -127,24 +127,40 @@
         }
 
         /* LIVE PREVIEW & RACK (From Previous Step) */
+        /* LIVE PREVIEW & 128x128 FRAME */
         #live-preview-container {
-            position: relative; width: 420px; height: 420px;
-            background-image: url('torso_forwebsite.png'); background-size: cover;
-            border: 2px solid #555563; border-radius: 8px; overflow: hidden;
+            position: relative; 
+            width: 128px; 
+            height: 128px;
+            border: 2px solid #555563; 
+            border-radius: 4px; 
+            overflow: hidden;
+            background-color: #2b2b36;
         }
-        #medal-grid {
-            position: absolute; top: 35%; left: 15%; width: 140px; 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; direction: ltr;
-        }
-        #ribbon-grid {
-            position: absolute; top: 35%; right: 15%; width: 140px; 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; direction: ltr;
-        }
-        .rack-item { width: 100%; height: auto; }
-        .badge-item { position: absolute; width: 50px; cursor: grab; user-select: none; }
-        .removable:hover { opacity: 0.5; outline: 2px solid red; cursor: pointer; }
 
-        .top-controls { display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; }
+        #torso-img {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            user-select: none;
+        }
+
+        .rack-item { 
+            position: absolute; 
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        
+        .badge-item { 
+            position: absolute; 
+            cursor: grab; 
+            user-select: none; 
+        }
+
+        .removable:hover { opacity: 0.5; outline: 1px solid red; }
+
+        .top-controls { display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; align-items: center;}
         .back-btn { background-color: #555563; padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer;}
         .generate-btn { background-color: #4CAF50; padding: 10px 20px; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;}
     </style>
@@ -168,17 +184,28 @@
 
         <!-- Live Preview Area -->
         <div class="preview-area">
-            <div class="top-controls">
+            <div class="top-controls" style="flex-wrap: wrap; gap: 10px;">
                 <button class="back-btn" onclick="goBack()">&#8592; Change Branch</button>
-                <h2 id="branch-title" style="margin: 0;">Branch Rack</h2>
+                <h2 id="branch-title" style="margin: 0; flex-grow: 1; text-align: center;">Branch Rack</h2>
+                
+                <!-- NEW TORSO SELECTOR -->
+                <div style="display: flex; gap: 10px; align-items: center; background: #2b2b36; padding: 5px 10px; border-radius: 5px;">
+                    <label style="font-size: 14px;">Uniform Base:</label>
+                    <select id="torso-select" onchange="updateTorsoBase()" style="background: #3a3a45; color: white; border: 1px solid #555563; padding: 5px;">
+                        <option value="lrtorso_forwebsite.png">Standard Uniform</option>
+                        <option value="custom">Upload Custom...</option>
+                    </select>
+                    <input type="file" id="torso-upload" accept="image/png, image/jpeg" style="display:none;" onchange="handleTorsoUpload(event)">
+                </div>
+
                 <button class="generate-btn" onclick="generateDecal()">Export Decal</button>
             </div>
             
             <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">Click preview items to remove them. Drag Badges to position.</p>
 
+            <!-- 128x128 FRAME -->
             <div id="live-preview-container">
-                <div id="medal-grid"></div>
-                <div id="ribbon-grid"></div>
+                <img id="torso-img" src="lrtorso_forwebsite.png" alt="Torso Base">
             </div>
         </div>
     </div>
@@ -405,19 +432,43 @@
         }
 
         // --- RENDER & SORT LOGIC ---
+        // --- TORSO IMAGE HANDLERS ---
+        function updateTorsoBase() {
+            const select = document.getElementById('torso-select');
+            const upload = document.getElementById('torso-upload');
+            const torsoImg = document.getElementById('torso-img');
+
+            if (select.value === 'custom') {
+                upload.click();
+            } else {
+                torsoImg.src = select.value;
+            }
+        }
+
+        function handleTorsoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('torso-img').src = e.target.result;
+                    // Reset dropdown to prevent getting stuck
+                    document.getElementById('torso-select').options[1].text = "Custom Loaded"; 
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- DYNAMIC RENDERING ALGORITHM ---
         function renderPreview() {
             const container = document.getElementById('live-preview-container');
-            const medalGrid = document.getElementById('medal-grid');
-            const ribbonGrid = document.getElementById('ribbon-grid');
             
-            medalGrid.innerHTML = '';
-            ribbonGrid.innerHTML = '';
-            container.querySelectorAll('.badge-item').forEach(b => b.remove());
+            // Clean up old items, leave torso base
+            container.querySelectorAll('.rack-item, .badge-item').forEach(b => b.remove());
 
             const rackItems = selectedRack.filter(a => !a.folder.includes("Badges"));
             const badgeItems = selectedRack.filter(a => a.folder.includes("Badges"));
 
-            // 1. Placement Order fix (now LTR by default from CSS) + Precedence Sort
+            // Advanced Sort
             rackItems.sort((a, b) => {
                 if (!a.subFolder && b.subFolder) return -1;
                 if (a.subFolder && !b.subFolder) return 1;
@@ -430,31 +481,99 @@
                 }
             });
 
-            // 2. Route Medals Left, Ribbons Right
-            rackItems.forEach(item => {
-                const img = document.createElement('img');
-                img.src = item.activeImage;
-                img.className = 'rack-item removable';
-                img.title = item.name;
-                img.onclick = () => removeFromRack(item.id);
-                
-                // If the active image matches the assigned medalImage, push to left grid
-                if (item.activeImage === item.medalImage) {
-                    medalGrid.appendChild(img);
+            // GROUPING FOR PLACEMENT LOGIC
+            const pureRibbons = []; // Division ribbons, citations (No medal options)
+            const stdRibbons = [];  // Ribbon variants of Medals
+            const medals = [];      // Medal variants
+
+            rackItems.forEach(award => {
+                const isMedalVariant = award.activeImage === award.medalImage;
+                const hasMedalVariant = !!award.medalImage;
+
+                if (!hasMedalVariant) {
+                    pureRibbons.push(award); 
+                } else if (!isMedalVariant) {
+                    stdRibbons.push(award);
                 } else {
-                    ribbonGrid.appendChild(img);
+                    medals.push(award);
                 }
             });
 
+            const hasStdRibbons = stdRibbons.length > 0;
+
+            // BASE COORDINATES (128x128 Torso Anchors)
+            const LEFT_POCKET_X = 20;  // Perspective Left (Wearer's Right)
+            const LEFT_POCKET_Y = 65;
+            const RIGHT_POCKET_X = 72; // Perspective Right (Wearer's Left)
+            const RIGHT_POCKET_Y = 65;
+            const ABOVE_RIGHT_Y = 40;
+
+            // 1. PURE RIBBONS (Above Perspective Right Pocket)
+            renderRibbonGrid(pureRibbons, RIGHT_POCKET_X, ABOVE_RIGHT_Y, container);
+
+            // 2. STANDARD RIBBONS (Perspective Right Pocket)
+            renderRibbonGrid(stdRibbons, RIGHT_POCKET_X, RIGHT_POCKET_Y, container);
+
+            // 3. MEDALS & OVERLAP LOGIC
+            // If Standard Ribbons exist -> Move Medals to Left Pocket. Else -> Stay Right.
+            const medalAnchorX = hasStdRibbons ? LEFT_POCKET_X : RIGHT_POCKET_X;
+            // Shift Y slightly if Medals are sharing the Right Pocket area with Pure Ribbons
+            const medalAnchorY = (!hasStdRibbons && pureRibbons.length > 0) ? RIGHT_POCKET_Y : LEFT_POCKET_Y;
+
+            medals.forEach((medal, index) => {
+                const img = document.createElement('img');
+                img.src = medal.activeImage;
+                img.className = 'rack-item removable';
+                img.title = medal.name;
+                img.onclick = () => removeFromRack(medal.id);
+                
+                // 6px Overlap Formula
+                const row = Math.floor(index / 6);
+                const col = index % 6;
+                
+                img.style.left = `${medalAnchorX + (col * 6)}px`;
+                img.style.top = `${medalAnchorY + (row * 6)}px`;
+                
+                // Priority Z-Index: 1000 - index ensures higher priority is physically on top
+                img.style.zIndex = 1000 - index; 
+                img.style.width = '14px'; // Base width scaled for 128x128
+                
+                container.appendChild(img);
+            });
+
+            // 4. BADGES
             badgeItems.forEach(badge => {
                 const img = document.createElement('img');
                 img.src = badge.activeImage;
                 img.className = 'badge-item removable';
                 img.title = badge.name;
-                img.style.left = badge.x + 'px';
-                img.style.top = badge.y + 'px';
+                img.style.width = '16px'; 
+                img.style.left = (badge.x !== null ? badge.x : 56) + 'px'; // Center default for 128 scale
+                img.style.top = (badge.y !== null ? badge.y : 10) + 'px';
+                img.style.zIndex = 2000;
                 img.ondblclick = () => removeFromRack(badge.id);
                 makeDraggable(img, badge);
+                container.appendChild(img);
+            });
+        }
+
+        // Helper to format ribbons cleanly (3 per row, standard gap)
+        function renderRibbonGrid(ribbonArray, startX, startY, container) {
+            ribbonArray.forEach((ribbon, index) => {
+                const img = document.createElement('img');
+                img.src = ribbon.activeImage;
+                img.className = 'rack-item removable';
+                img.title = ribbon.name;
+                img.onclick = () => removeFromRack(ribbon.id);
+                
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+                
+                img.style.left = `${startX + (col * 15)}px`; // 15px gap for ribbons
+                img.style.top = `${startY + (row * 6)}px`; 
+                img.style.width = '14px';
+                img.style.zIndex = 500 - index;
+                
                 container.appendChild(img);
             });
         }
@@ -482,6 +601,7 @@
         }
 
         // --- CANVAS EXPORT ---
+        // --- 128x128 CANVAS EXPORTER ---
         async function generateDecal() {
             if (selectedRack.length === 0) {
                 alert("Please add awards to the preview first.");
@@ -492,38 +612,32 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            canvas.width = container.offsetWidth;
-            canvas.height = container.offsetHeight;
+            // Force pure 128x128 Output
+            canvas.width = 128;
+            canvas.height = 128;
 
             try {
-                const baseTorso = new Image();
-                baseTorso.crossOrigin = "Anonymous";
-                await new Promise(resolve => { baseTorso.onload = resolve; baseTorso.src = 'torso_forwebsite.png'; });
-                ctx.drawImage(baseTorso, 0, 0, canvas.width, canvas.height);
+                // 1. Draw Selected Torso
+                const baseTorso = document.getElementById('torso-img');
+                ctx.drawImage(baseTorso, 0, 0, 128, 128);
 
-                // Collect images from BOTH the Medal Grid and Ribbon Grid
-                const medalImages = Array.from(document.getElementById('medal-grid').getElementsByTagName('img'));
-                const ribbonImages = Array.from(document.getElementById('ribbon-grid').getElementsByTagName('img'));
-                const rackImages = [...medalImages, ...ribbonImages];
+                // 2. Fetch all rendered items, sort by Z-Index so they draw back-to-front
+                const domItems = Array.from(container.querySelectorAll('.rack-item, .badge-item'));
+                domItems.sort((a, b) => parseInt(a.style.zIndex || 0) - parseInt(b.style.zIndex || 0));
                 
-                for (let i = 0; i < rackImages.length; i++) {
-                    const imgEl = rackImages[i];
+                for (let i = 0; i < domItems.length; i++) {
+                    const imgEl = domItems[i];
                     const img = new Image();
                     img.crossOrigin = "Anonymous";
                     await new Promise(resolve => { img.onload = resolve; img.src = imgEl.src; });
                     
-                    const rect = imgEl.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    ctx.drawImage(img, rect.left - containerRect.left, rect.top - containerRect.top, imgEl.offsetWidth, imgEl.offsetHeight);
-                }
-
-                const badgeItems = selectedRack.filter(a => a.folder && a.folder.includes("Badges"));
-                for (let i = 0; i < badgeItems.length; i++) {
-                    const badge = badgeItems[i];
-                    const img = new Image();
-                    img.crossOrigin = "Anonymous";
-                    await new Promise(resolve => { img.onload = resolve; img.src = badge.activeImage; });
-                    ctx.drawImage(img, badge.x, badge.y, 50, 50); 
+                    const left = parseFloat(imgEl.style.left || 0);
+                    const top = parseFloat(imgEl.style.top || 0);
+                    const width = imgEl.offsetWidth || 14;
+                    // Calculate proportional height to prevent squishing
+                    const height = Math.round(width * (img.height / img.width)) || 14; 
+                    
+                    ctx.drawImage(img, left, top, width, height);
                 }
 
                 const exportData = canvas.toDataURL("image/png");
