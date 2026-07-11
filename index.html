@@ -182,6 +182,8 @@
         let allAwardsData = [];
         let selectedRack = [];
         let currentBranch = "";
+        // NEW: Tracks the exact order divisions are clicked
+        let activeSubFoldersOrder = [];
 
         // Simulated Fetch (Replace with fetch('awards.json'))
         // Ensuring Federation Wide has Precedence 1, 2, and 3
@@ -324,19 +326,23 @@
         }
 
         // --- RACK LOGIC ---
+        // --- RACK LOGIC ---
         function updateRackFromUI(award, isAdding) {
-            // Remove existing instance if it's there
             selectedRack = selectedRack.filter(a => a.id !== award.id);
 
             if (isAdding) {
                 const isBadge = award.folder.includes("Badges");
-                let imageToUse = award.image; // Default for badges
+                let imageToUse = award.image; 
 
                 if (!isBadge) {
-                    // Find which radio is selected
                     const selectedRadio = document.querySelector(`input[name="type_${award.id}"]:checked`);
                     const type = selectedRadio ? selectedRadio.value : (award.medalImage ? 'medal' : 'ribbon');
                     imageToUse = type === 'medal' ? award.medalImage : award.ribbonImage;
+                }
+
+                // If this is a Division/Ministry, record its activation order if not already tracked
+                if (award.subFolder && !activeSubFoldersOrder.includes(award.subFolder)) {
+                    activeSubFoldersOrder.push(award.subFolder);
                 }
 
                 selectedRack.push({
@@ -345,23 +351,32 @@
                     x: isBadge ? 100 : null,
                     y: isBadge ? 100 : null
                 });
+            } else {
+                // If removing, check if we need to clear the subfolder from the active order
+                if (award.subFolder) {
+                    const stillHasSubFolder = selectedRack.some(a => a.subFolder === award.subFolder);
+                    if (!stillHasSubFolder) {
+                        activeSubFoldersOrder = activeSubFoldersOrder.filter(sf => sf !== award.subFolder);
+                    }
+                }
             }
             renderPreview();
         }
 
-        // Handles removing from preview (syncs back to uncheck the box)
         function removeFromRack(id) {
-            selectedRack = selectedRack.filter(item => item.id !== id);
-            const checkbox = document.getElementById(`chk_${id}`);
-            if (checkbox) {
-                checkbox.checked = false;
-                const optPanel = document.getElementById(`opt_${id}`);
-                if (optPanel) optPanel.style.display = 'none';
+            const itemToRemove = selectedRack.find(a => a.id === id);
+            if (itemToRemove) {
+                updateRackFromUI(itemToRemove, false); // Route through the main logic to handle subfolder tracking
+                const checkbox = document.getElementById(`chk_${id}`);
+                if (checkbox) {
+                    checkbox.checked = false;
+                    const optPanel = document.getElementById(`opt_${id}`);
+                    if (optPanel) optPanel.style.display = 'none';
+                }
             }
-            renderPreview();
         }
 
-        // Renders the Grid & Badges (Preserved from previous step)
+        // --- RENDER & SORT LOGIC ---
         function renderPreview() {
             const container = document.getElementById('live-preview-container');
             const rackGrid = document.getElementById('rack-grid');
@@ -372,8 +387,30 @@
             const rackItems = selectedRack.filter(a => !a.folder.includes("Badges"));
             const badgeItems = selectedRack.filter(a => a.folder.includes("Badges"));
 
-            // Sort by precedence (Federation 1,2,3 will naturally float to the top)
-            rackItems.sort((a, b) => a.precedence - b.precedence);
+            // ADVANCED SORTING ENGINE
+            rackItems.sort((a, b) => {
+                // 1. Standard Awards (No Subfolder) ALWAYS go before Divisions
+                if (!a.subFolder && b.subFolder) return -1;
+                if (a.subFolder && !b.subFolder) return 1;
+
+                // 2. If both are Standard Awards, sort by normal Precedence (1, 2, 3...)
+                if (!a.subFolder && !b.subFolder) {
+                    return a.precedence - b.precedence;
+                }
+
+                // 3. If both are Division Awards, check which Division was activated first
+                if (a.subFolder && b.subFolder) {
+                    const aOrder = activeSubFoldersOrder.indexOf(a.subFolder);
+                    const bOrder = activeSubFoldersOrder.indexOf(b.subFolder);
+                    
+                    if (aOrder !== bOrder) {
+                        return aOrder - bOrder; // Sort by Division Activation Order
+                    } else {
+                        // 4. Same Division? Sort by their Internal Precedence
+                        return a.precedence - b.precedence;
+                    }
+                }
+            });
 
             rackItems.forEach(item => {
                 const img = document.createElement('img');
