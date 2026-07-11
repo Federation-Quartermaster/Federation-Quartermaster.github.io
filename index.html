@@ -280,7 +280,6 @@
             const row = document.createElement('div');
             row.className = 'award-row';
 
-            // Main Checkbox
             const label = document.createElement('label');
             label.className = 'checkbox-label';
             
@@ -292,13 +291,15 @@
             label.appendChild(document.createTextNode(award.name));
             row.appendChild(label);
 
-            // Options Panel (Medal vs Ribbon)
             const isBadge = award.folder.includes("Badges");
+            const hasOptions = award.medalImage || award.ribbonImage; // NEW: Check if variants exist
+            
             const optionsPanel = document.createElement('div');
             optionsPanel.className = 'options-panel';
             optionsPanel.id = `opt_${award.id}`;
 
-            if (!isBadge) {
+            // Only build radio buttons if it's not a badge AND it actually has variants
+            if (!isBadge && hasOptions) {
                 let html = '';
                 if (award.medalImage) html += `<label><input type="radio" name="type_${award.id}" value="medal" checked> Medal</label>`;
                 if (award.ribbonImage) html += `<label><input type="radio" name="type_${award.id}" value="ribbon" ${!award.medalImage ? 'checked' : ''}> Ribbon</label>`;
@@ -306,16 +307,14 @@
                 row.appendChild(optionsPanel);
             }
 
-            // Checkbox Logic: Show options and update rack
             checkbox.addEventListener('change', (e) => {
-                if (!isBadge) {
+                if (!isBadge && hasOptions) {
                     optionsPanel.style.display = e.target.checked ? 'block' : 'none';
                 }
                 updateRackFromUI(award, e.target.checked);
             });
 
-            // Radio Logic: Update rack image if they switch between Medal/Ribbon
-            if (!isBadge) {
+            if (!isBadge && hasOptions) {
                 const radios = optionsPanel.querySelectorAll('input[type="radio"]');
                 radios.forEach(r => r.addEventListener('change', () => {
                     if (checkbox.checked) updateRackFromUI(award, true);
@@ -324,6 +323,7 @@
 
             return row;
         }
+        
 
         // --- RACK LOGIC ---
         // --- RACK LOGIC ---
