@@ -126,37 +126,32 @@
             border-bottom: 1px dashed #555563;
         }
 
-        /* LIVE PREVIEW & 512x512 FRAME */
-        #live-preview-container {
-            position: relative; 
-            width: 512px; 
+       /* PIXEL PERFECT SCALING */
+        #preview-wrapper {
+            width: 512px;
             height: 512px;
-            border: 2px solid #555563; 
-            border-radius: 4px; 
+            border: 2px solid #555563;
+            border-radius: 4px;
             overflow: hidden;
             background-color: #2b2b36;
         }
 
-        #torso-img {
+        #live-preview-container {
+            position: relative;
+            width: 128px;
+            height: 128px;
+            transform: scale(4);
+            transform-origin: top left;
+            image-rendering: pixelated; /* Forces crisp pixels */
+        }
+
+        #torso-img, .rack-item, .badge-item {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 0;
-            user-select: none;
+            image-rendering: pixelated;
         }
 
-        .rack-item { 
-            position: absolute; 
-            cursor: pointer;
-            transition: 0.1s;
-        }
-        
-        .badge-item { 
-            position: absolute; 
-            cursor: grab; 
-            user-select: none; 
-        }
-
+        .rack-item { cursor: pointer; transition: 0.1s; }
+        .badge-item { cursor: grab; user-select: none; }
         .removable:hover { opacity: 0.5; outline: 1px solid red; }
 
         .top-controls { display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; align-items: center;}
@@ -206,8 +201,10 @@
             <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">Click preview items to remove them. Drag Badges to position.</p>
 
             <!-- 128x128 FRAME -->
-            <div id="live-preview-container">
-                <img id="torso-img" src="lrtorso_forwebsite.png" alt="Torso Base">
+            <div id="preview-wrapper">
+                <div id="live-preview-container">
+                    <img id="torso-img" src="lrtorso_forwebsite.png" alt="Torso Base">
+                </div>
             </div>
         </div>
     </div>
@@ -483,47 +480,54 @@
             renderPreview();
         }
 
-        // --- GROUP DRAG ENGINE ---
+        // --- DRAG ENGINES (Adjusted for 4x CSS Scale) ---
         function makeCategoryDraggable(el, category) {
             let startX, startY;
-            
             el.onmousedown = function(e) {
                 e.preventDefault();
-                startX = e.clientX;
-                startY = e.clientY;
+                startX = e.clientX; startY = e.clientY;
                 document.onmouseup = closeDragElement;
                 document.onmousemove = elementDrag;
             };
-
             function elementDrag(e) {
                 e.preventDefault();
-                let dx = e.clientX - startX;
-                let dy = e.clientY - startY;
-                startX = e.clientX;
-                startY = e.clientY;
+                let dx = (e.clientX - startX) / 4; // Divide by 4 for native 128 resolution
+                let dy = (e.clientY - startY) / 4;
+                startX = e.clientX; startY = e.clientY;
                 
-                // Applies the drag movement live to every single item in the locked category
                 if (category === 'medals') {
-                    medalsOffsetX += dx;
-                    medalsOffsetY += dy;
+                    medalsOffsetX += dx; medalsOffsetY += dy;
                     document.querySelectorAll('.medal-item').forEach(img => {
                         img.style.left = (parseFloat(img.style.left) + dx) + 'px';
                         img.style.top = (parseFloat(img.style.top) + dy) + 'px';
                     });
                 } else if (category === 'ribbons') {
-                    ribbonsOffsetX += dx;
-                    ribbonsOffsetY += dy;
+                    ribbonsOffsetX += dx; ribbonsOffsetY += dy;
                     document.querySelectorAll('.ribbon-item').forEach(img => {
                         img.style.left = (parseFloat(img.style.left) + dx) + 'px';
                         img.style.top = (parseFloat(img.style.top) + dy) + 'px';
                     });
                 }
             }
+            function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+        }
 
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
+       // --- AUTO-CENTERING GRID CALCULATOR ---
+        function getGridLayout(index, totalItems, maxColumns) {
+            const topRowCount = (totalItems % maxColumns === 0) ? maxColumns : (totalItems % maxColumns);
+            let row, col, itemsInThisRow;
+
+            if (index < topRowCount) {
+                row = 0; // Top Row (Highest Precedence)
+                col = index;
+                itemsInThisRow = topRowCount;
+            } else {
+                const remainingIndex = index - topRowCount;
+                row = 1 + Math.floor(remainingIndex / maxColumns);
+                col = remainingIndex % maxColumns;
+                itemsInThisRow = maxColumns; // Lower rows are ALWAYS fully packed
             }
+            return { row, col, itemsInThisRow };
         }
 
         // --- DYNAMIC RENDERING ALGORITHM ---
@@ -534,7 +538,6 @@
             const rackItems = selectedRack.filter(a => !a.folder.includes("Badges"));
             const badgeItems = selectedRack.filter(a => a.folder.includes("Badges"));
 
-            // Advanced Sort by Precedence
             rackItems.sort((a, b) => {
                 if (!a.subFolder && b.subFolder) return -1;
                 if (a.subFolder && !b.subFolder) return 1;
@@ -547,95 +550,107 @@
                 }
             });
 
-            // Grouping
-            const allRibbons = []; 
+            const standardRibbons = []; 
+            const smallRibbons = [];
             const medals = [];      
 
             rackItems.forEach(award => {
                 const isMedalVariant = award.activeImage === award.medalImage;
                 const hasMedalVariant = !!award.medalImage;
 
-                // Any pure ribbon or standard ribbon gets grouped together
                 if (!hasMedalVariant || !isMedalVariant) {
-                    allRibbons.push(award);
+                    const isSmallRibbon = award.folder.includes("Division Awards") || award.name.includes("Campaign Citations");
+                    if (isSmallRibbon) smallRibbons.push(award);
+                    else standardRibbons.push(award);
                 } else {
                     medals.push(award);
                 }
             });
 
             const hasMedals = medals.length > 0;
-            const hasRibbons = allRibbons.length > 0;
-            const SCALE = 4; // 128 to 512 Workspace Multiplier
+            const medalAnchorX = (standardRibbons.length > 0 || smallRibbons.length > 0) ? 1 : 77;
+            const rightPocketHasMedals = hasMedals && medalAnchorX === 77;
+            const leftPocketHasMedals = hasMedals && medalAnchorX === 1;
 
-            // 1. RENDER RIBBONS (Building Upwards)
-            const ribbonAnchorX = 78;
-            const ribbonAnchorY = hasMedals ? 34 : 36;
-            const totalRibbonRows = Math.ceil(allRibbons.length / 3);
+            // 1A. STANDARD RIBBONS (Perspective Right, 16x4, Max 3)
+            const stdRibbonAnchorX = 78;
+            const stdRibbonAnchorY = rightPocketHasMedals ? 34 : 36;
+            const totalStdRibbonRows = Math.ceil(standardRibbons.length / 3);
 
-            allRibbons.forEach((ribbon, index) => {
+            standardRibbons.forEach((ribbon, index) => {
                 const img = document.createElement('img');
                 img.src = ribbon.activeImage;
                 img.className = 'rack-item removable ribbon-item';
                 img.title = ribbon.name;
                 
-                if (isRibbonsLocked) {
-                    img.style.cursor = 'grab';
-                    makeCategoryDraggable(img, 'ribbons');
-                } else {
-                    img.onclick = () => removeFromRack(ribbon.id);
-                }
+                if (isRibbonsLocked) { img.style.cursor = 'grab'; makeCategoryDraggable(img, 'ribbons'); } 
+                else { img.onclick = () => removeFromRack(ribbon.id); }
                 
-                const row = Math.floor(index / 3);
-                const col = index % 3;
+                const { row, col, itemsInThisRow } = getGridLayout(index, standardRibbons.length, 3);
+                const shiftX = ((3 - itemsInThisRow) * 16) / 2; // Centers incomplete rows
+                const yOffset = (totalStdRibbonRows - 1 - row) * 4;
                 
-                // Calculates Y axis so the highest precedence is at the top, and bottom is at Y=36
-                const yOffset = (totalRibbonRows - 1 - row) * 6;
-                
-                img.style.left = `${(ribbonAnchorX + (col * 15)) * SCALE + ribbonsOffsetX}px`; 
-                img.style.top = `${(ribbonAnchorY - yOffset) * SCALE + ribbonsOffsetY}px`; 
-                img.style.width = `${14 * SCALE}px`;
+                img.style.left = `${stdRibbonAnchorX + (col * 16) + shiftX + ribbonsOffsetX}px`; 
+                img.style.top = `${stdRibbonAnchorY - yOffset + ribbonsOffsetY}px`; 
+                img.style.width = `16px`; img.style.height = `4px`; // Forced 16x4
                 img.style.zIndex = 500 - index;
-                
                 container.appendChild(img);
             });
 
-            // 2. RENDER MEDALS (Building Downwards)
-            const medalAnchorX = hasRibbons ? 1 : 77;
-            const medalAnchorY = 36;
+            // 1B. SMALL RIBBONS (Perspective Left, 12x4, Max 4)
+            const smallRibbonAnchorX = 2;
+            const smallRibbonAnchorY = leftPocketHasMedals ? 34 : 36;
+            const totalSmallRibbonRows = Math.ceil(smallRibbons.length / 4);
 
+            smallRibbons.forEach((ribbon, index) => {
+                const img = document.createElement('img');
+                img.src = ribbon.activeImage;
+                img.className = 'rack-item removable ribbon-item';
+                img.title = ribbon.name;
+                
+                if (isRibbonsLocked) { img.style.cursor = 'grab'; makeCategoryDraggable(img, 'ribbons'); } 
+                else { img.onclick = () => removeFromRack(ribbon.id); }
+                
+                const { row, col, itemsInThisRow } = getGridLayout(index, smallRibbons.length, 4);
+                const shiftX = ((4 - itemsInThisRow) * 12) / 2;
+                const yOffset = (totalSmallRibbonRows - 1 - row) * 4;
+                
+                img.style.left = `${smallRibbonAnchorX + (col * 12) + shiftX + ribbonsOffsetX}px`; 
+                img.style.top = `${smallRibbonAnchorY - yOffset + ribbonsOffsetY}px`; 
+                img.style.width = `12px`; img.style.height = `4px`; // Forced 12x4
+                img.style.zIndex = 500 - index;
+                container.appendChild(img);
+            });
+
+            // 2. MEDALS (Natural Size, Overlap Spacing 6px, Max 6)
             medals.forEach((medal, index) => {
                 const img = document.createElement('img');
                 img.src = medal.activeImage;
                 img.className = 'rack-item removable medal-item';
                 img.title = medal.name;
                 
-                if (isMedalsLocked) {
-                    img.style.cursor = 'grab';
-                    makeCategoryDraggable(img, 'medals');
-                } else {
-                    img.onclick = () => removeFromRack(medal.id);
-                }
+                if (isMedalsLocked) { img.style.cursor = 'grab'; makeCategoryDraggable(img, 'medals'); } 
+                else { img.onclick = () => removeFromRack(medal.id); }
                 
-                const row = Math.floor(index / 6);
-                const col = index % 6;
+                const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
+                const shiftX = ((6 - itemsInThisRow) * 6) / 2;
                 
-                img.style.left = `${(medalAnchorX + (col * 6)) * SCALE + medalsOffsetX}px`;
-                img.style.top = `${(medalAnchorY + (row * 6)) * SCALE + medalsOffsetY}px`;
-                img.style.width = `${14 * SCALE}px`;
+                img.style.left = `${medalAnchorX + (col * 6) + shiftX + medalsOffsetX}px`;
+                img.style.top = `${36 + (row * 6) + medalsOffsetY}px`;
                 img.style.zIndex = 1000 - index; 
+                // Notice width/height are NOT forced. Uses native image size!
                 
                 container.appendChild(img);
             });
 
-            // 3. RENDER BADGES
+            // 3. BADGES
             badgeItems.forEach(badge => {
                 const img = document.createElement('img');
                 img.src = badge.activeImage;
                 img.className = 'badge-item removable';
                 img.title = badge.name;
-                img.style.width = `${16 * SCALE}px`; 
-                img.style.left = (badge.x !== null ? badge.x : (56 * SCALE)) + 'px'; 
-                img.style.top = (badge.y !== null ? badge.y : (10 * SCALE)) + 'px';
+                img.style.left = (badge.x !== null ? badge.x : 56) + 'px'; 
+                img.style.top = (badge.y !== null ? badge.y : 10) + 'px';
                 img.style.zIndex = 2000;
                 img.ondblclick = () => removeFromRack(badge.id);
                 makeDraggable(img, badge);
@@ -665,30 +680,30 @@
             });
         }
         // Drag and Drop (Preserved)
-        function makeDraggable(elmnt, badgeData) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            elmnt.onmousedown = (e) => {
+       function makeDraggable(el, awardObj) {
+            let startX, startY;
+            el.onmousedown = function(e) {
                 e.preventDefault();
-                pos3 = e.clientX; pos4 = e.clientY;
+                startX = e.clientX; startY = e.clientY;
                 document.onmouseup = closeDragElement;
                 document.onmousemove = elementDrag;
             };
             function elementDrag(e) {
                 e.preventDefault();
-                pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
-                pos3 = e.clientX; pos4 = e.clientY;
-                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+                let dx = (e.clientX - startX) / 4; 
+                let dy = (e.clientY - startY) / 4;
+                startX = e.clientX; startY = e.clientY;
+                
+                awardObj.x = (awardObj.x || parseFloat(el.style.left)) + dx;
+                awardObj.y = (awardObj.y || parseFloat(el.style.top)) + dy;
+                el.style.left = awardObj.x + 'px';
+                el.style.top = awardObj.y + 'px';
             }
-            function closeDragElement() {
-                document.onmouseup = null; document.onmousemove = null;
-                badgeData.x = elmnt.offsetLeft; badgeData.y = elmnt.offsetTop;
-            }
+            function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
         }
 
         // --- CANVAS EXPORT ---
-        // --- 128x128 CANVAS EXPORTER ---
-        // --- 128x128 CANVAS EXPORTER ---
+       // --- 128x128 CANVAS EXPORTER ---
         async function generateDecal() {
             if (selectedRack.length === 0) {
                 alert("Please add awards to the preview first.");
@@ -699,32 +714,27 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // STRICTLY enforce the 128x128 export size
             canvas.width = 128;
             canvas.height = 128;
+            ctx.imageSmoothingEnabled = false; // Prevents blurriness on export
 
             try {
-                // NOTE: The torso drawing code has been completely deleted here.
-                // The canvas will remain completely transparent behind the awards.
-                
                 const domItems = Array.from(container.querySelectorAll('.rack-item, .badge-item'));
                 domItems.sort((a, b) => parseInt(a.style.zIndex || 0) - parseInt(b.style.zIndex || 0));
                 
-                const SCALE = 4; // Divider to convert DOM 512px sizing back to 128px export sizing
-
                 for (let i = 0; i < domItems.length; i++) {
                     const imgEl = domItems[i];
                     const img = new Image();
                     img.crossOrigin = "Anonymous";
                     await new Promise(resolve => { img.onload = resolve; img.src = imgEl.src; });
                     
-                    // Divide all positional values by the SCALE to compress it perfectly to 128x128
-                    const left = parseFloat(imgEl.style.left || 0) / SCALE;
-                    const top = parseFloat(imgEl.style.top || 0) / SCALE;
-                    const width = (imgEl.offsetWidth || (14 * SCALE)) / SCALE;
+                    // Coordinates are natively 0-128 now
+                    const left = parseFloat(imgEl.style.left || 0);
+                    const top = parseFloat(imgEl.style.top || 0);
                     
-                    // Calculate height based on proportional width scale to prevent distortion
-                    const height = Math.round(width * (img.height / img.width)) || 14; 
+                    // If ribbon, use forced style size. If medal/badge, use true natural image size.
+                    const width = imgEl.style.width ? parseFloat(imgEl.style.width) : img.naturalWidth;
+                    const height = imgEl.style.height ? parseFloat(imgEl.style.height) : img.naturalHeight;
                     
                     ctx.drawImage(img, left, top, width, height);
                 }
