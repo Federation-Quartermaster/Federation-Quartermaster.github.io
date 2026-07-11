@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Group Awards Library</title>
-    
-    <!-- CSS is now embedded directly so it cannot fail to load -->
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -32,39 +30,50 @@
             background-color: #2b2b36; border: 1px solid #3a3a45;
             border-radius: 8px; padding: 15px; cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .award-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
         }
+        /* This prevents the PNG from acting buggy/overflowing the button */
         .award-card img {
-            max-width: 100%; height: auto; max-height: 150px;
-            object-fit: contain; margin-bottom: 10px;
+            max-width: 100%; 
+            height: 120px; /* Forces uniform height */
+            object-fit: contain; /* Prevents stretching */
+            margin-bottom: 10px;
         }
-        .award-card h3 { margin: 10px 0 5px 0; font-size: 18px; }
+        .award-card h3 { margin: 10px 0 5px 0; font-size: 18px; text-align: center; }
         .award-card p { margin: 0; font-size: 12px; color: #aaaaaa; }
     </style>
 </head>
 <body>
 
-    <!-- The Navigation Buttons -->
     <nav>
         <button onclick="filterAwards('all')">All</button>
         <button onclick="filterAwards('medal')">Medals</button>
         <button onclick="filterAwards('ribbon')">Ribbons</button>
     </nav>
     
-    <!-- Where the awards will be injected -->
     <div id="gallery-grid"></div>
 
-    <!-- JavaScript is now embedded directly -->
     <script>
-        // Data is hardcoded here, so no JSON file is needed to start!
-        // Just add your actual file names into the 'image' paths below.
-        const allAwards = [
-            { name: "Medal of Honor", category: "medal", image: "assets/medals/moh.png" },
-            { name: "Combat Action Ribbon", category: "ribbon", image: "assets/ribbons/combat_action.png" }
-        ];
+        let allAwards = [];
+
+        // This line tells the page to read your awards.json file again
+        fetch('awards.json')
+            .then(response => {
+                if (!response.ok) throw new Error("Could not load awards.json");
+                return response.json();
+            })
+            .then(data => {
+                allAwards = data;
+                renderGallery(allAwards); // Load the gallery once data is ready
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById('gallery-grid').innerHTML = "<p>Error loading awards.json. Check the console (F12).</p>";
+            });
 
         function renderGallery(awards) {
             const grid = document.getElementById('gallery-grid');
@@ -74,12 +83,11 @@
                 const card = document.createElement('div');
                 card.className = 'award-card';
                 card.innerHTML = `
-                    <img src="${award.image}" alt="${award.name}" onerror="this.src='https://via.placeholder.com/150?text=Image+Not+Found'">
+                    <img src="${award.image}" alt="${award.name}" onerror="this.src='https://via.placeholder.com/150?text=Missing+Image'">
                     <h3>${award.name}</h3>
                     <p>Click to download PNG</p>
                 `;
                 
-                // Downloads the image automatically
                 card.onclick = () => {
                     const link = document.createElement('a');
                     link.href = award.image;
@@ -101,9 +109,6 @@
                 renderGallery(filtered);
             }
         }
-
-        // Initialize the page with all awards
-        renderGallery(allAwards);
     </script>
 </body>
 </html>
