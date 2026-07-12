@@ -1,75 +1,149 @@
-/* Basic page setup */
+/* --- BASE THEME & LAYOUT --- */
 body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #121212;
+    color: #e0e0e0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #1e1e24; /* Dark background to make medals pop */
-    color: #ffffff;
-    margin: 0;
-    padding: 20px;
-    text-align: center;
+    overflow: hidden; 
 }
 
-/* Style the navigation buttons */
-nav {
-    margin-bottom: 30px;
+/* --- TOP TOOLBAR --- */
+.top-toolbar {
+    height: 50px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
 }
 
-nav button {
-    background-color: #3a3a45;
+.logo {
+    font-weight: bold;
+    color: #00a8ff;
+    letter-spacing: 1.5px;
+}
+
+.global-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.tool-btn, .export-btn, .base-select {
+    background-color: #2a2a2a;
     color: white;
-    border: none;
-    padding: 10px 20px;
-    margin: 0 5px;
-    font-size: 16px;
-    border-radius: 5px;
+    border: 1px solid #444;
+    padding: 6px 12px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    font-size: 13px;
+    transition: 0.2s;
 }
 
-nav button:hover {
-    background-color: #555563;
+.tool-btn:hover, .base-select:hover { background-color: #3a3a3a; }
+.export-btn { background-color: #00a8ff; font-weight: bold; color: #fff; border: none; }
+.export-btn:hover { background-color: #008cd6; }
+.tool-locked { background-color: #d9534f !important; border-color: #d43f3a !important; }
+
+/* --- WORKSPACE CORE --- */
+.workspace {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
 }
 
-/* Create the grid layout for the awards */
-#gallery-grid {
-    display: grid;
-    /* This automatically creates columns that fit the screen */
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+/* --- SIDEBAR FILE EXPLORER --- */
+.sidebar {
+    width: 400px;
+    background-color: #1a1a1a;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
-/* Style individual award cards to look clickable */
-.award-card {
+.sidebar-header {
+    padding: 15px 20px;
+    background-color: #111;
+    border-bottom: 1px solid #333;
+}
+
+.sidebar-header h2 { margin: 0; font-size: 12px; color: #666; }
+
+.explorer-tree { padding: 15px 10px; font-size: 14px; }
+details { margin-bottom: 5px; }
+summary {
+    cursor: pointer; padding: 5px; border-radius: 4px;
+    user-select: none; transition: background 0.2s;
+}
+summary:hover { background-color: #2a2a2a; }
+.nested-folder { margin-left: 20px; border-left: 1px solid #333; padding-left: 5px; margin-top: 5px; }
+
+/* --- AWARD CONTROL ROW --- */
+.award-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 5px;
+    margin-bottom: 4px; background-color: #222; border-radius: 4px; border: 1px solid #333;
+}
+.award-row:hover { border-color: #444; }
+.activate-btn { cursor: pointer; width: 14px; height: 14px; }
+.award-name { flex-grow: 1; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.type-toggle { display: flex; border: 1px solid #444; border-radius: 4px; overflow: hidden; }
+.type-toggle button { background: #2a2a2a; color: #888; border: none; padding: 2px 6px; font-size: 10px; cursor: pointer; }
+.type-toggle button.active { background: #00a8ff; color: #fff; font-weight: bold; }
+.type-toggle button:disabled { background: #1a1a1a; cursor: not-allowed; }
+
+.tier-select { background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 11px; width: 70px; }
+.unlock-icon { background: none; border: none; cursor: pointer; font-size: 12px; filter: grayscale(100%); transition: 0.2s; }
+.unlock-icon:hover { filter: grayscale(0%); }
+
+/* --- CENTER CANVAS AREA --- */
+.canvas-area {
+    flex-grow: 1;
+    background-color: #0d0d0d;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    /* Optional: Grid background for the workspace */
+    background-image: linear-gradient(#1a1a1a 1px, transparent 1px), linear-gradient(#1a1a1a 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.workspace-camera {
+    transform: scale(4); 
+    transform-origin: center;
+    transition: transform 0.1s ease-out; /* Smooth zooming */
+}
+
+.torso-canvas {
+    width: 128px;
+    height: 128px;
+    position: relative;
+    box-shadow: 0 0 0 1px #333, 0 10px 40px rgba(0,0,0,0.8);
+    image-rendering: pixelated; 
     background-color: #2b2b36;
-    border: 1px solid #3a3a45;
-    border-radius: 8px;
-    padding: 15px;
-    cursor: pointer; /* Changes the mouse to a hand icon */
-    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.award-card:hover {
-    transform: translateY(-5px); /* Makes the card "lift" when hovered */
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+/* Isolated Grid Containers */
+.award-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; 
 }
 
-/* Ensure images fit inside the cards */
-.award-card img {
-    max-width: 100%;
-    height: auto;
-    max-height: 150px;
-    object-fit: contain;
-    margin-bottom: 10px;
+/* Items inside the layer need pointer events restored to be clickable */
+.rack-item, .badge-item {
+    position: absolute;
+    image-rendering: pixelated;
+    pointer-events: auto; 
+    transition: outline 0.1s;
 }
-
-.award-card h3 {
-    margin: 10px 0 5px 0;
-    font-size: 18px;
-}
-
-.award-card p {
-    margin: 0;
-    font-size: 12px;
-    color: #aaaaaa;
-}
+.rack-item:hover, .badge-item:hover { outline: 1px solid rgba(255,0,0,0.5); cursor: pointer; }
+.indiv-unlocked { outline: 1px solid #00a8ff !important; cursor: grab !important; }
