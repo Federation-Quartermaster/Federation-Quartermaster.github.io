@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRF Uniform Builder - Workspace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- TOP TOOLBAR -->
+    <header class="top-toolbar">
+        <div class="logo">IRF BUILDER</div>
+        <div class="global-controls">
+            <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medals</button>
+            <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbons</button>
+            <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
+                <option value="lrtorso_forwebsite.png">Standard Uniform</option>
+                <option value="custom">Upload Custom...</option>
+            </select>
+            <input type="file" id="torso-upload" accept="image/png, image/jpeg" style="display:none;" onchange="handleTorsoUpload(event)">
+            <button class="export-btn" onclick="generateDecal()">Export Decal</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- LEFT SIDEBAR: FILE EXPLORER -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>AWARDS EXPLORER</h2>
+            </div>
+            <div class="explorer-tree" id="frames-container">
+                <!-- Javascript will inject the cascading directory tree here -->
+            </div>
+        </aside>
+
+        <!-- CENTER CANVAS: THE INFINITE WORKSPACE -->
+        <main class="canvas-area" id="canvas-pan-area">
+            <div class="workspace-camera" id="camera">
+                <!-- THE MATHEMATICALLY PURE 128x128 TORSO -->
+                <div class="torso-canvas" id="preview-canvas">
+                    <img id="torso-img" src="lrtorso_forwebsite.png" alt="Torso Base" style="width:100%; height:100%; position:absolute; top:0; left:0;">
+                    
+                    <!-- ISOLATED GRID CONTAINERS -->
+                    <div id="ribbons-container" class="award-layer"></div>
+                    <div id="citations-container" class="award-layer"></div>
+                    <div id="medals-container" class="award-layer"></div>
+                    <div id="badges-container" class="award-layer"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
