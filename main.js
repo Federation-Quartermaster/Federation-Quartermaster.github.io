@@ -1,7 +1,6 @@
 // --- GLOBALS ---
 let allAwardsData = [];
 let selectedRack = [];
-let activeSubFoldersOrder = [];
 
 // Drag & Lock States
 let isMedalsLocked = false;
@@ -12,7 +11,7 @@ let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 // Camera Zoom/Pan Engine
 let scale = 4;
 
-// Replace with true fetch logic once bot json is complete
+// --- DATA FETCH & UNIFICATION ---
 document.addEventListener("DOMContentLoaded", () => {
     fetch('awards.json')
         .then(res => {
@@ -20,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return res.json();
         })
         .then(data => {
-            // Unify the 4 tables into a single searchable array
             allAwardsData = unifyAwardsData(data);
             buildExplorer();
         })
@@ -29,14 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function unifyAwardsData(data) {
     let unified = {};
-
     
-    
-    // Helper function to map each table into our unified objects
     const processTable = (tableArray, typeName, imageKey) => {
         if (!tableArray) return;
         tableArray.forEach(item => {
-            // Create a unique baseline ID (ignoring tier and type)
             const baseId = `${item.branch}_${item.folder}_${item.subFolder}_${item.name}`;
             
             if (!unified[baseId]) {
@@ -47,15 +41,14 @@ function unifyAwardsData(data) {
                     subFolder: item.subFolder || "",
                     name: item.name,
                     precedence: item.precedence,
-                    tiers: {}, // Stores the specific images per tier
-                    availableTypes: new Set() // Tracks if it has a Medal, Ribbon, etc.
+                    tiers: {}, 
+                    availableTypes: new Set() 
                 };
             }
             
             const tierName = item.tier || "Standard";
             if (!unified[baseId].tiers[tierName]) unified[baseId].tiers[tierName] = {};
             
-            // Map the specific image path from the current table
             if (item[imageKey]) {
                 unified[baseId].tiers[tierName][typeName] = item[imageKey];
                 unified[baseId].availableTypes.add(typeName);
@@ -63,13 +56,165 @@ function unifyAwardsData(data) {
         });
     };
 
-    // Process all 4 tables 
     processTable(data.Citations, 'Citation', 'citationImage');
     processTable(data.Ribbons, 'Ribbon', 'ribbonImage');
     processTable(data.Medals, 'Medal', 'medalImage');
     processTable(data.Badges, 'Badge', 'badgeImage');
 
     return Object.values(unified);
+}
+
+// --- EXPLORER UI BUILDER ---
+function buildExplorer() {
+    const container = document.getElementById('frames-container');
+    container.innerHTML = ''; 
+    
+    const tree = {};
+    allAwardsData.forEach(award => {
+        if (!tree[award.branch]) tree[award.branch] = {};
+        if (!tree[award.branch][award.folder]) tree[award.branch][award.folder] = {};
+        if (!tree[award.branch][award.folder][award.subFolder]) tree[award.branch][award.folder][award.subFolder] = [];
+        
+        tree[award.branch][award.folder][award.subFolder].push(award);
+    });
+
+    function createNodes(levelObj, parentEl) {
+        for (const key in levelObj) {
+            if (Array.isArray(levelObj[key])) {
+                levelObj[key].sort((a, b) => a.precedence - b.precedence).forEach(award => {
+                    parentEl.appendChild(createAwardRow(award));
+                });
+            } else {
+                if (key === "") {
+                    createNodes(levelObj[key], parentEl);
+                } else {
+                    const details = document.createElement('details');
+                    const summary = document.createElement('summary');
+                    summary.textContent = key;
+                    details.appendChild(summary);
+                    
+                    const innerContainer = document.createElement('div');
+                    innerContainer.className = 'nested-folder'; 
+                    createNodes(levelObj[key], innerContainer);
+                    
+                    details.appendChild(innerContainer);
+                    parentEl.appendChild(details);
+                }
+            }
+        }
+    }
+    
+    createNodes(tree, container);
+}
+
+function createAwardRow(award) {
+    const row = document.createElement('div');
+    row.className = 'award-row';
+    
+    // Checkbox for adding/removing from rack
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'activate-btn';
+    checkbox.id = `chk_${award.id}`;
+    
+    const nameLabel = document.createElement('div');
+    nameLabel.className = 'award-name';
+    nameLabel.textContent = award.name.replace(/^\d+\.\s*/, ''); 
+    nameLabel.title = award.name;
+    
+    row.appendChild(checkbox);
+    row.appendChild(nameLabel);
+
+    // Initial States
+    const tierKeys = Object.keys(award.tiers);
+    let selectedTier = tierKeys[0]; 
+    let activeType = Array.from(award.availableTypes)[0]; 
+
+    // Sync state to the visual rack
+    const updateRackIfActive = () => {
+        if (checkbox.checked) {
+            // Remove old instance
+            selectedRack = selectedRack.filter(a => a.id !== award.id);
+            // Add updated instance
+            selectedRack.push({
+                id: award.id,
+                name: award.name,
+                type: activeType,
+                isCitation: activeType === 'Citation',
+                activeImage: award.tiers[selectedTier][activeType],
+                precedence: award.precedence,
+                x: null, y: null
+            });
+            renderPreview();
+        }
+    };
+
+    // Render Tiers Dropdown
+    if (tierKeys.length > 1 || tierKeys[0] !== "Standard") {
+        const tierSelect = document.createElement('select');
+        tierSelect.className = 'tier-select';
+        tierKeys.forEach(tier => {
+            const option = document.createElement('option');
+            option.value = tier;
+            option.textContent = tier;
+            tierSelect.appendChild(option);
+        });
+        tierSelect.onchange = (e) => { 
+            selectedTier = e.target.value; 
+            updateRackIfActive(); 
+        };
+        row.appendChild(tierSelect);
+    }
+
+    // Render Type Toggle (C, R, M, B)
+    const typeToggle = document.createElement('div');
+    typeToggle.className = 'type-toggle';
+    const typeConfigs = [
+        { label: 'C', value: 'Citation', title: 'Citation' },
+        { label: 'R', value: 'Ribbon', title: 'Ribbon' },
+        { label: 'M', value: 'Medal', title: 'Medal' },
+        { label: 'B', value: 'Badge', title: 'Badge' }
+    ];
+
+    typeConfigs.forEach(tc => {
+        const btn = document.createElement('button');
+        btn.textContent = tc.label;
+        btn.title = tc.title;
+        
+        if (!award.availableTypes.has(tc.value)) {
+            btn.disabled = true;
+        } else {
+            if (tc.value === activeType) btn.classList.add('active');
+            btn.onclick = () => {
+                typeToggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeType = tc.value;
+                updateRackIfActive();
+            };
+        }
+        typeToggle.appendChild(btn);
+    });
+    row.appendChild(typeToggle);
+
+    // Checkbox Listener
+    checkbox.onchange = (e) => {
+        if (e.target.checked) {
+            selectedRack.push({
+                id: award.id,
+                name: award.name,
+                type: activeType,
+                isCitation: activeType === 'Citation',
+                activeImage: award.tiers[selectedTier][activeType],
+                precedence: award.precedence,
+                x: null, y: null
+            });
+        } else {
+            selectedRack = selectedRack.filter(a => a.id !== award.id);
+        }
+        renderPreview();
+    };
+    
+    return row;
 }
 
 // --- UI / LOGIC STATE ---
@@ -97,32 +242,31 @@ function toggleLock(category) {
         isMedalsLocked = !isMedalsLocked;
         const btn = document.getElementById('lock-medals-btn');
         btn.classList.toggle('tool-locked', isMedalsLocked);
-        btn.innerHTML = isMedalsLocked ? '🔒 Medals Locked' : '🔓 Lock Medals';
+        btn.innerHTML = isMedalsLocked ? '🔓 Medals Locked' : '🔓 Lock Medals';
     } else {
         isRibbonsLocked = !isRibbonsLocked;
         const btn = document.getElementById('lock-ribbons-btn');
         btn.classList.toggle('tool-locked', isRibbonsLocked);
-        btn.innerHTML = isRibbonsLocked ? '🔒 Ribbons Locked' : '🔓 Lock Ribbons';
+        btn.innerHTML = isRibbonsLocked ? '🔓 Ribbons Locked' : '🔓 Lock Ribbons';
     }
     renderPreview();
 }
 
 function removeFromRack(id) {
     selectedRack = selectedRack.filter(a => a.id !== id);
-    // Auto-uncheck UI
     const checkbox = document.getElementById(`chk_${id}`);
     if (checkbox) checkbox.checked = false;
     renderPreview();
 }
 
-// --- DYNAMIC RENDERING ALGORITHM (The Alignment Matrix) ---
+// --- DYNAMIC RENDERING ALGORITHM ---
 function getGridLayout(index, totalItems, maxColumns) {
     const totalRows = Math.ceil(totalItems / maxColumns);
     const topRowCount = (totalItems % maxColumns === 0) ? maxColumns : (totalItems % maxColumns);
     let row, col, itemsInThisRow;
 
     if (index < topRowCount) {
-        row = 0; // The highest, incomplete row
+        row = 0; 
         col = index;
         itemsInThisRow = topRowCount;
     } else {
@@ -142,44 +286,36 @@ function renderPreview() {
     
     [ribbonsContainer, citationsContainer, medalsContainer, badgesContainer].forEach(c => c.innerHTML = '');
 
-    const standardRibbons = selectedRack.filter(a => a.type === 'Ribbon' && !a.isCitation);
-    const citations = selectedRack.filter(a => a.type === 'Citation' || a.isCitation);
+    const standardRibbons = selectedRack.filter(a => a.type === 'Ribbon');
+    const citations = selectedRack.filter(a => a.type === 'Citation');
     const medals = selectedRack.filter(a => a.type === 'Medal');
     const badges = selectedRack.filter(a => a.type === 'Badge');
 
-    // Sort arrays by precedence logic here (Assuming ascending precedence = higher priority)
     [standardRibbons, citations, medals].forEach(arr => arr.sort((a, b) => a.precedence - b.precedence));
 
-    // ==========================================
-    // 🎛️ THE MATHEMATICAL MATRIX (Line Assignments)
-    // ==========================================
+    // MATRIX MATH
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
-    // Anchor Centers (Horizontal)
-    const LEFT_POCKET_CENTER_X = 28;  // Viewer's Left (Character Right)
-    const RIGHT_POCKET_CENTER_X = 94; // Viewer's Right (Character Left)
+    const LEFT_POCKET_CENTER_X = 28;  
+    const RIGHT_POCKET_CENTER_X = 94; 
 
-    // Anchor Lines (Vertical Pixel Y-Coordinates)
     const RED_LINE_Y = 32;
     const YELLOW_LINE_Y = 32;
     const GREEN_LINE_Y = 34;
     const BLUE_LINE_Y = 34;
 
-    // RULE 1: Ribbons sit on BLUE
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
 
-    // RULE 2: Medals
     const MEDAL_LINE_Y = hasRibbons ? GREEN_LINE_Y : BLUE_LINE_Y;
     const MEDAL_CENTER_X = hasRibbons ? LEFT_POCKET_CENTER_X : RIGHT_POCKET_CENTER_X;
     const medalsOnGreen = (MEDAL_LINE_Y === GREEN_LINE_Y && hasMedals);
 
-    // RULE 3: Citations
     const CITATION_LINE_Y = medalsOnGreen ? RED_LINE_Y : GREEN_LINE_Y;
     const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
 
-    // --- RENDER STANDARD RIBBONS (Building UP) ---
+    // RENDER STANDARD RIBBONS
     const ribbonWidth = 16;
     const ribbonHeight = 4;
     standardRibbons.forEach((ribbon, index) => {
@@ -189,16 +325,13 @@ function renderPreview() {
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
         
-        // Centering Math
         const rowWidth = itemsInThisRow * ribbonWidth;
         const startX = RIBBON_CENTER_X - (rowWidth / 2);
         const baseLeft = startX + (col * ribbonWidth);
         
-        // Stack Upwards (row 0 is highest, so it needs the largest negative Y offset)
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
         const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset;
         
-        // Output
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
         img.style.top = `${baseTop + ribbonsOffsetY}px`; 
         img.style.width = `${ribbonWidth}px`; 
@@ -209,7 +342,7 @@ function renderPreview() {
         ribbonsContainer.appendChild(img);
     });
 
-    // --- RENDER CITATIONS (Building UP) ---
+    // RENDER CITATIONS
     const citationWidth = 12;
     const citationHeight = 4;
     citations.forEach((citation, index) => {
@@ -236,7 +369,7 @@ function renderPreview() {
         citationsContainer.appendChild(img);
     });
 
-    // --- RENDER MEDALS (Building DOWN) ---
+    // RENDER MEDALS
     const medalSpacing = 6; 
     medals.forEach((medal, index) => {
         const img = document.createElement('img');
@@ -245,13 +378,11 @@ function renderPreview() {
         
         const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
         
-        // For natural image sizes, we assume a ~16px width for centering offsets
         const assumedImgWidth = 16; 
         const rowWidth = (itemsInThisRow - 1) * medalSpacing; 
         const startX = MEDAL_CENTER_X - (rowWidth / 2) - (assumedImgWidth / 2);
         const baseLeft = startX + (col * medalSpacing);
         
-        // Stack Downwards (row 0 touches line)
         const baseTop = MEDAL_LINE_Y + (row * medalSpacing); 
         
         img.style.left = `${baseLeft + medalsOffsetX}px`;
@@ -262,7 +393,7 @@ function renderPreview() {
         medalsContainer.appendChild(img);
     });
 
-    // --- RENDER BADGES ---
+    // RENDER BADGES
     badges.forEach(badge => {
         const img = document.createElement('img');
         img.src = badge.activeImage;
