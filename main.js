@@ -83,13 +83,6 @@ function unifyAwardsData(data) {
 
     return Object.values(unified);
 }
-    processTable(data.Citations, 'Citation', 'citationImage');
-    processTable(data.Ribbons, 'Ribbon', 'ribbonImage');
-    processTable(data.Medals, 'Medal', 'medalImage');
-    processTable(data.Badges, 'Badge', 'badgeImage');
-
-    return Object.values(unified);
-}
 
 // --- EXPLORER UI BUILDER ---
 function buildExplorer() {
