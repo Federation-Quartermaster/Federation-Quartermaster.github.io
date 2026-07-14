@@ -340,7 +340,21 @@ function renderPreview() {
     const medals = selectedRack.filter(a => a.type === 'Medal');
     const badges = selectedRack.filter(a => a.type === 'Badge');
 
-    [standardRibbons, citations, medals].forEach(arr => arr.sort((a, b) => a.precedence - b.precedence));
+    [standardRibbons, citations, medals].forEach(arr => arr.sort((a, b) => {
+        // 1. Calculate Folder Depth (Root items = 0, Folder items = 1, Subfolder items = 2)
+        const aDepth = (a.folder ? 1 : 0) + (a.subFolder ? 1 : 0);
+        const bDepth = (b.folder ? 1 : 0) + (b.subFolder ? 1 : 0);
+        
+        // Root items always come before deeper items
+        if (aDepth !== bDepth) return aDepth - bDepth;
+        
+        // 2. If they are at the same depth, group them by folder alphabetically so they don't intermix
+        if (a.folder !== b.folder) return (a.folder || "").localeCompare(b.folder || "");
+        if (a.subFolder !== b.subFolder) return (a.subFolder || "").localeCompare(b.subFolder || "");
+        
+        // 3. Finally, sort by their explicit numeric precedence within their specific group
+        return a.precedence - b.precedence;
+    }));
 
     // ==========================================
     // THE MATHEMATICAL MATRIX
