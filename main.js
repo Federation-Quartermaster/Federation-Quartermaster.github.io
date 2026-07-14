@@ -299,16 +299,15 @@ function renderPreview() {
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
-    // The Magic Anchors:
-    // Left Center is 25.5 (between 25 and 26) -> Anchor point 26
-    // Right Center is 101.5 (between 101 and 102) -> Anchor point 102
-    const LEFT_POCKET_CENTER_X = 26;  
-    const RIGHT_POCKET_CENTER_X = 102; 
+    // Shifted 2px Left to account for the top-left rendering bias
+    const LEFT_POCKET_CENTER_X = 24;  
+    const RIGHT_POCKET_CENTER_X = 100; 
 
-    const RED_LINE_Y = 32;
-    const YELLOW_LINE_Y = 32;
-    const GREEN_LINE_Y = 34; 
-    const BLUE_LINE_Y = 34;
+    // Updated Line Levels
+    const RED_LINE_Y = 33;
+    const YELLOW_LINE_Y = 33;
+    const GREEN_LINE_Y = 35; 
+    const BLUE_LINE_Y = 35;
 
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
@@ -331,7 +330,6 @@ function renderPreview() {
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
         
         const rowWidth = itemsInThisRow * ribbonWidth;
-        // Clean subtraction automatically aligns to the 2px center
         const startX = RIBBON_CENTER_X - (rowWidth / 2); 
         const baseLeft = startX + (col * ribbonWidth);
         
