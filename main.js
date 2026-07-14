@@ -293,17 +293,22 @@ function renderPreview() {
 
     [standardRibbons, citations, medals].forEach(arr => arr.sort((a, b) => a.precedence - b.precedence));
 
-    // MATRIX MATH
+    // ==========================================
+    // THE MATHEMATICAL MATRIX
+    // ==========================================
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
-    const LEFT_POCKET_CENTER_X = 25;  
+    // The Magic Anchors:
+    // Left Center is 25.5 (between 25 and 26) -> Anchor point 26
+    // Right Center is 101.5 (between 101 and 102) -> Anchor point 102
+    const LEFT_POCKET_CENTER_X = 26;  
     const RIGHT_POCKET_CENTER_X = 102; 
 
-    const RED_LINE_Y = 33;
-    const YELLOW_LINE_Y = 33;
-    const GREEN_LINE_Y = 35;
-    const BLUE_LINE_Y = 35;
+    const RED_LINE_Y = 32;
+    const YELLOW_LINE_Y = 32;
+    const GREEN_LINE_Y = 34; 
+    const BLUE_LINE_Y = 34;
 
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
@@ -315,7 +320,7 @@ function renderPreview() {
     const CITATION_LINE_Y = medalsOnGreen ? RED_LINE_Y : GREEN_LINE_Y;
     const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
 
-    // --- RENDER STANDARD RIBBONS (Building UP) ---
+    // --- RENDER STANDARD RIBBONS (Right Pocket - Building UP) ---
     const ribbonWidth = 16;
     const ribbonHeight = 4;
     standardRibbons.forEach((ribbon, index) => {
@@ -325,13 +330,13 @@ function renderPreview() {
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
         
-        // Pixel-perfect centering math
-        const totalRowWidth = itemsInThisRow * ribbonWidth;
-        const startX = Math.floor(RIBBON_CENTER_X - (totalRowWidth / 2));
+        const rowWidth = itemsInThisRow * ribbonWidth;
+        // Clean subtraction automatically aligns to the 2px center
+        const startX = RIBBON_CENTER_X - (rowWidth / 2); 
         const baseLeft = startX + (col * ribbonWidth);
         
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
-        const baseTop = Math.floor(RIBBON_LINE_Y - ribbonHeight - yOffset);
+        const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset;
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
         img.style.top = `${baseTop + ribbonsOffsetY}px`; 
@@ -343,7 +348,7 @@ function renderPreview() {
         ribbonsContainer.appendChild(img);
     });
 
-    // --- RENDER CITATIONS (Building UP) ---
+    // --- RENDER CITATIONS (Left Pocket - Building UP) ---
     const citationWidth = 12;
     const citationHeight = 4;
     citations.forEach((citation, index) => {
@@ -353,12 +358,12 @@ function renderPreview() {
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, citations.length, 4);
         
-        const totalRowWidth = itemsInThisRow * citationWidth;
-        const startX = Math.floor(CITATION_CENTER_X - (totalRowWidth / 2));
+        const rowWidth = itemsInThisRow * citationWidth;
+        const startX = CITATION_CENTER_X - (rowWidth / 2);
         const baseLeft = startX + (col * citationWidth);
         
         const yOffset = (totalRows - 1 - row) * citationHeight;
-        const baseTop = Math.floor(CITATION_LINE_Y - citationHeight - yOffset);
+        const baseTop = CITATION_LINE_Y - citationHeight - yOffset;
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
         img.style.top = `${baseTop + ribbonsOffsetY}px`; 
@@ -370,23 +375,21 @@ function renderPreview() {
         citationsContainer.appendChild(img);
     });
 
-    // --- RENDER MEDALS (Building DOWN) ---
-    const medalSpacing = 6; // Adjust this if medals need to overlap more/less
+    // --- RENDER MEDALS (Dynamic Pocket - Building DOWN) ---
+    const medalSpacing = 6; 
     const assumedImgWidth = 16; 
     medals.forEach((medal, index) => {
         const img = document.createElement('img');
         img.src = medal.activeImage;
         img.className = 'rack-item medal-item';
         
-        // Changed max columns from 6 to 4 to prevent bleeding off the edge
-        const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 4);
+        const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
         
-        // True width of the overlapping medal block
-        const totalRowWidth = ((itemsInThisRow - 1) * medalSpacing) + assumedImgWidth; 
-        const startX = Math.floor(MEDAL_CENTER_X - (totalRowWidth / 2));
+        const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + assumedImgWidth; 
+        const startX = MEDAL_CENTER_X - (rowWidth / 2);
+        
         const baseLeft = startX + (col * medalSpacing);
-        
-        const baseTop = Math.floor(MEDAL_LINE_Y + (row * medalSpacing)); 
+        const baseTop = MEDAL_LINE_Y + (row * medalSpacing); 
         
         img.style.left = `${baseLeft + medalsOffsetX}px`;
         img.style.top = `${baseTop + medalsOffsetY}px`;
@@ -396,7 +399,7 @@ function renderPreview() {
         medalsContainer.appendChild(img);
     });
 
-    // RENDER BADGES
+    // --- RENDER BADGES ---
     badges.forEach(badge => {
         const img = document.createElement('img');
         img.src = badge.activeImage;
