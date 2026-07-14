@@ -297,13 +297,13 @@ function renderPreview() {
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
-    const LEFT_POCKET_CENTER_X = 28;  
-    const RIGHT_POCKET_CENTER_X = 94; 
+    const LEFT_POCKET_CENTER_X = 25;  
+    const RIGHT_POCKET_CENTER_X = 102; 
 
-    const RED_LINE_Y = 32;
-    const YELLOW_LINE_Y = 32;
-    const GREEN_LINE_Y = 34;
-    const BLUE_LINE_Y = 34;
+    const RED_LINE_Y = 33;
+    const YELLOW_LINE_Y = 33;
+    const GREEN_LINE_Y = 35;
+    const BLUE_LINE_Y = 35;
 
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
@@ -463,6 +463,7 @@ function makeIndividualDraggable(el, awardObj) {
 
 // --- 128x128 EXPORTER ---
 // --- 128x128 EXPORTER ---
+// --- 128x128 EXPORTER ---
 async function generateDecal() {
     if (selectedRack.length === 0) return alert("Please add awards to the preview first.");
 
@@ -472,7 +473,10 @@ async function generateDecal() {
     ctx.imageSmoothingEnabled = false;
 
     try {
-        const domItems = Array.from(document.querySelectorAll('#preview-canvas img'));
+        // Gather all images in the canvas, but FILTER OUT the torso background
+        const domItems = Array.from(document.querySelectorAll('#preview-canvas img'))
+            .filter(imgEl => imgEl.id !== 'torso-img');
+            
         domItems.sort((a, b) => parseInt(a.style.zIndex || 0) - parseInt(b.style.zIndex || 0));
         
         for (let imgEl of domItems) {
@@ -490,22 +494,17 @@ async function generateDecal() {
             let width = img.naturalWidth;
             let height = img.naturalHeight;
             
-            // THE FIX: Force torso to 128x128, only parse 'px' values for the awards
-            if (imgEl.id === 'torso-img') {
-                width = 128;
-                height = 128;
-            } else {
-                if (imgEl.style.width && imgEl.style.width.includes('px')) width = parseFloat(imgEl.style.width);
-                if (imgEl.style.height && imgEl.style.height.includes('px')) height = parseFloat(imgEl.style.height);
-            }
+            // Only parse 'px' values for the awards
+            if (imgEl.style.width && imgEl.style.width.includes('px')) width = parseFloat(imgEl.style.width);
+            if (imgEl.style.height && imgEl.style.height.includes('px')) height = parseFloat(imgEl.style.height);
             
             ctx.drawImage(img, left, top, width, height);
         }
 
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL("image/png");
-            link.download = "Custom_Roblox_Uniform_Decal.png";
-            link.click();
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL("image/png");
+        link.download = "Custom_Roblox_Uniform_Decal.png";
+        link.click();
     } catch (error) {
         console.error(error);
         alert("Failed to compile the image.");
