@@ -333,8 +333,8 @@ function renderPreview() {
         const baseLeft = startX + (col * ribbonWidth);
         
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
-        // Added + 1 to baseTop to shift the ribbons down by 1 pixel
-        const baseTop = RIBBON_LINE_Y - yOffset + 1; 
+        // Removed the "+ 1" to bring the ribbons back up by one pixel
+        const baseTop = RIBBON_LINE_Y - yOffset; 
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
         img.style.top = `${baseTop + ribbonsOffsetY}px`; 
