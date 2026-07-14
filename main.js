@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function unifyAwardsData(data) {
     let unified = {};
+
+    
     
     // Helper function to map each table into our unified objects
     const processTable = (tableArray, typeName, imageKey) => {
