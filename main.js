@@ -31,14 +31,35 @@ function unifyAwardsData(data) {
     const processTable = (tableArray, typeName, imageKey) => {
         if (!tableArray) return;
         tableArray.forEach(item => {
-            const baseId = `${item.branch}_${item.folder}_${item.subFolder}_${item.name}`;
+            // 1. Grab raw folder names
+            let f = item.folder || "";
+            let sf = item.subFolder || "";
+            let tierName = item.tier || "Standard";
+
+            // 2. Bot Cleanup: If subFolder or folder is actually a Tier name, map it to tierName and erase the folder
+            const tierKeywords = ["Bronze", "Silver", "Gold", "Platinum"];
+            if (tierKeywords.includes(sf)) {
+                tierName = sf;
+                sf = ""; 
+            }
+            if (tierKeywords.includes(f)) {
+                tierName = f;
+                f = "";
+            }
+
+            // 3. Bot Cleanup: If the folder name is identical to the award name, erase the folder so it doesn't nest endlessly
+            if (f.includes(item.name) || item.name.includes(f)) f = "";
+            if (sf.includes(item.name) || item.name.includes(sf)) sf = "";
+
+            // 4. Generate a clean ID using the sanitized folder names
+            const baseId = `${item.branch}_${f}_${sf}_${item.name}`;
             
             if (!unified[baseId]) {
                 unified[baseId] = {
                     id: baseId,
                     branch: item.branch || "Unknown",
-                    folder: item.folder || "",
-                    subFolder: item.subFolder || "",
+                    folder: f,          // Use sanitized folder
+                    subFolder: sf,      // Use sanitized subFolder
                     name: item.name,
                     precedence: item.precedence,
                     tiers: {}, 
@@ -46,7 +67,6 @@ function unifyAwardsData(data) {
                 };
             }
             
-            const tierName = item.tier || "Standard";
             if (!unified[baseId].tiers[tierName]) unified[baseId].tiers[tierName] = {};
             
             if (item[imageKey]) {
@@ -56,6 +76,13 @@ function unifyAwardsData(data) {
         });
     };
 
+    processTable(data.Citations, 'Citation', 'citationImage');
+    processTable(data.Ribbons, 'Ribbon', 'ribbonImage');
+    processTable(data.Medals, 'Medal', 'medalImage');
+    processTable(data.Badges, 'Badge', 'badgeImage');
+
+    return Object.values(unified);
+}
     processTable(data.Citations, 'Citation', 'citationImage');
     processTable(data.Ribbons, 'Ribbon', 'ribbonImage');
     processTable(data.Medals, 'Medal', 'medalImage');
