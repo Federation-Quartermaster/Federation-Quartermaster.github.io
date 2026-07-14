@@ -318,7 +318,7 @@ function renderPreview() {
     const CITATION_LINE_Y = (hasRibbons && hasMedals) ? RED_LINE_Y : GREEN_LINE_Y;
     const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
 
-    // --- RENDER STANDARD RIBBONS (No Nudge) ---
+   // --- RENDER STANDARD RIBBONS (Right Pocket - Building UP) ---
     const ribbonWidth = 16;
     const ribbonHeight = 4;
     standardRibbons.forEach((ribbon, index) => {
@@ -327,12 +327,17 @@ function renderPreview() {
         img.className = 'rack-item ribbon-item';
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
+        
         const rowWidth = itemsInThisRow * ribbonWidth;
-        const baseLeft = (RIBBON_CENTER_X - (rowWidth / 2)) + (col * ribbonWidth);
+        const startX = RIBBON_CENTER_X - (rowWidth / 2); 
+        const baseLeft = startX + (col * ribbonWidth);
         
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
+        // Added + 1 to baseTop to shift the ribbons down by 1 pixel
+        const baseTop = RIBBON_LINE_Y - yOffset + 1; 
+        
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
-        img.style.top = `${RIBBON_LINE_Y - ribbonHeight - yOffset + ribbonsOffsetY}px`; 
+        img.style.top = `${baseTop + ribbonsOffsetY}px`; 
         img.style.width = `${ribbonWidth}px`; 
         img.style.height = `${ribbonHeight}px`; 
         img.style.zIndex = 500 - index;
@@ -341,7 +346,7 @@ function renderPreview() {
         ribbonsContainer.appendChild(img);
     });
 
-    // --- RENDER CITATIONS (No Nudge) ---
+   // --- RENDER CITATIONS (Left Pocket - Building UP) ---
     const citationWidth = 12;
     const citationHeight = 4;
     citations.forEach((citation, index) => {
@@ -350,12 +355,17 @@ function renderPreview() {
         img.className = 'rack-item ribbon-item';
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, citations.length, 4);
+        
         const rowWidth = itemsInThisRow * citationWidth;
-        const baseLeft = (CITATION_CENTER_X - (rowWidth / 2)) + (col * citationWidth);
+        const startX = CITATION_CENTER_X - (rowWidth / 2);
+        const baseLeft = startX + (col * citationWidth);
         
         const yOffset = (totalRows - 1 - row) * citationHeight;
+        // Added + 1 to baseTop to shift the citations down by 1 pixel
+        const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
+        
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
-        img.style.top = `${CITATION_LINE_Y - citationHeight - yOffset + ribbonsOffsetY}px`; 
+        img.style.top = `${baseTop + ribbonsOffsetY}px`; 
         img.style.width = `${citationWidth}px`; 
         img.style.height = `${citationHeight}px`; 
         img.style.zIndex = 500 - index;
