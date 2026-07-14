@@ -299,23 +299,23 @@ function renderPreview() {
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
-    // Anchor points based on your provided 25.5/101.5 centers
     const LEFT_POCKET_CENTER_X = 26;  
     const RIGHT_POCKET_CENTER_X = 102; 
 
-    const RED_LINE_Y = 33;
-    const YELLOW_LINE_Y = 33;
-    const GREEN_LINE_Y = 35; 
-    const BLUE_LINE_Y = 35;
+    // Locked Y-Coordinates
+    const RED_LINE_Y = 33;    // For Citations
+    const GREEN_LINE_Y = 35;  // For Medals
+    const BLUE_LINE_Y = 35;   // For Ribbons (Locked)
 
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
 
+    // Medals sit on Green if Ribbons exist, otherwise they take the Blue line
     const MEDAL_LINE_Y = hasRibbons ? GREEN_LINE_Y : BLUE_LINE_Y;
     const MEDAL_CENTER_X = hasRibbons ? LEFT_POCKET_CENTER_X : RIGHT_POCKET_CENTER_X;
-    const medalsOnGreen = (MEDAL_LINE_Y === GREEN_LINE_Y && hasMedals);
-
-    const CITATION_LINE_Y = medalsOnGreen ? RED_LINE_Y : GREEN_LINE_Y;
+    
+    // Citations sit on Red if Medals are on Green, otherwise they take the Green line
+    const CITATION_LINE_Y = (hasRibbons && hasMedals) ? RED_LINE_Y : GREEN_LINE_Y;
     const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
 
     // --- RENDER STANDARD RIBBONS (No Nudge) ---
@@ -365,6 +365,7 @@ function renderPreview() {
     });
 
     // --- RENDER MEDALS (Nudge Logic Applied) ---
+    // --- RENDER MEDALS (Nudge Logic Applied) ---
     const medalSpacing = 6; 
     const assumedImgWidth = 16; 
     medals.forEach((medal, index) => {
@@ -374,11 +375,18 @@ function renderPreview() {
         
         const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
         const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + assumedImgWidth; 
-        let startX = MEDAL_CENTER_X - (rowWidth / 2);
         
-        // Nudge the entire row by 1px if even-numbered to center on the 2px zipper
+        // Apply the 2px leftward nudge if we are on the Left Pocket
+        let centerX = MEDAL_CENTER_X;
+        if (centerX === LEFT_POCKET_CENTER_X) {
+            centerX -= 2; 
+        }
+        
+        let startX = centerX - (rowWidth / 2);
+        
+        // Keep the 1px center-zipper nudge for even rows
         if (itemsInThisRow % 2 === 0) {
-            startX += (MEDAL_CENTER_X === LEFT_POCKET_CENTER_X) ? 1 : -1;
+            startX += (centerX === LEFT_POCKET_CENTER_X - 2) ? 1 : -1;
         }
         
         img.style.left = `${startX + (col * medalSpacing) + medalsOffsetX}px`;
