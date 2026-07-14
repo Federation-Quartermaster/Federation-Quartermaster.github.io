@@ -435,12 +435,10 @@ function renderPreview() {
             centerX -= 2; 
         }
         
+        // The true starting X coordinate for the row
         let startX = centerX - (rowWidth / 2);
         
-        // Keep the 1px center-zipper nudge for even rows
-        if (itemsInThisRow % 2 === 0) {
-            startX += (centerX === LEFT_POCKET_CENTER_X - 2) ? 1 : -1;
-        }
+        // [REMOVED THE EVEN-ROW 1PX NUDGE HERE]
         
         // --- 1. THE CENTERING LOGIC ---
         // Find the exact horizontal center point of this specific grid slot
