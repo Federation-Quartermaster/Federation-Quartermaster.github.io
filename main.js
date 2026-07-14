@@ -259,6 +259,49 @@ function removeFromRack(id) {
     renderPreview();
 }
 
+// --- SMART PADDING DETECTOR ---
+function applySmartPadding(imgElement, baseTop) {
+    // Prevent CORS "tainted canvas" errors when reading pixels
+    imgElement.crossOrigin = "Anonymous"; 
+
+    const checkPixels = () => {
+        // Create an invisible 1-pixel-tall canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = imgElement.naturalWidth || 16;
+        canvas.height = 1; 
+        
+        // Draw just the top row of the image onto the canvas
+        ctx.drawImage(imgElement, 0, 0);
+        
+        // Extract the pixel data (Array format: [R, G, B, Alpha, R, G, B, Alpha...])
+        const pixels = ctx.getImageData(0, 0, canvas.width, 1).data;
+        
+        let isTopRowTransparent = true;
+        
+        // Check the Alpha channel (every 4th value) of the top row
+        for (let i = 3; i < pixels.length; i += 4) {
+            if (pixels[i] > 0) { // If Alpha is > 0, there is solid color here
+                isTopRowTransparent = false;
+                break;
+            }
+        }
+        
+        // If the top row is NOT transparent (bot cropped it tight), nudge it down
+        if (!isTopRowTransparent) {
+            imgElement.style.top = `${baseTop + 1}px`;
+        }
+    };
+
+    // Images take a few milliseconds to load. We must wait for the file 
+    // to exist in memory before checking its pixels.
+    if (imgElement.complete) {
+        checkPixels();
+    } else {
+        imgElement.addEventListener('load', checkPixels);
+    }
+}
+
 // --- DYNAMIC RENDERING ALGORITHM ---
 function getGridLayout(index, totalItems, maxColumns) {
     const totalRows = Math.ceil(totalItems / maxColumns);
@@ -333,7 +376,6 @@ function renderPreview() {
         const baseLeft = startX + (col * ribbonWidth);
         
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
-        // Removed the "+ 1" to bring the ribbons back up by one pixel
         const baseTop = RIBBON_LINE_Y - yOffset; 
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
@@ -361,7 +403,6 @@ function renderPreview() {
         const baseLeft = startX + (col * citationWidth);
         
         const yOffset = (totalRows - 1 - row) * citationHeight;
-        // Added + 1 to baseTop to shift the citations down by 1 pixel
         const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
@@ -374,17 +415,19 @@ function renderPreview() {
         citationsContainer.appendChild(img);
     });
 
-    // --- RENDER MEDALS (Nudge Logic Applied) ---
-    // --- RENDER MEDALS (Nudge Logic Applied) ---
+    // --- RENDER MEDALS (Center-Anchored + Smart Padding Applied) ---
     const medalSpacing = 6; 
-    const assumedImgWidth = 16; 
+    const ribbonWidthOnly = 16; // We only care about the physical width of the ribbon portion here
+
     medals.forEach((medal, index) => {
         const img = document.createElement('img');
         img.src = medal.activeImage;
         img.className = 'rack-item medal-item';
         
         const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
-        const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + assumedImgWidth; 
+        
+        // Calculate the total width of the row based strictly on ribbons and spacing
+        const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
         
         // Apply the 2px leftward nudge if we are on the Left Pocket
         let centerX = MEDAL_CENTER_X;
@@ -399,8 +442,24 @@ function renderPreview() {
             startX += (centerX === LEFT_POCKET_CENTER_X - 2) ? 1 : -1;
         }
         
-        img.style.left = `${startX + (col * medalSpacing) + medalsOffsetX}px`;
-        img.style.top = `${MEDAL_LINE_Y + (row * medalSpacing) + medalsOffsetY}px`;
+        // --- 1. THE CENTERING LOGIC ---
+        // Find the exact horizontal center point of this specific grid slot
+        let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
+        
+        // Assign the 'left' position to that center point
+        img.style.left = `${slotCenterX}px`;
+        
+        // Force the image to anchor itself by its horizontal center, rather than its left edge
+        img.style.transform = `translateX(-50%)`;
+        
+        // --- 2. THE SMART PADDING LOGIC ---
+        // Calculate the base top value normally
+        const baseTop = MEDAL_LINE_Y + (row * medalSpacing) + medalsOffsetY;
+        img.style.top = `${baseTop}px`;
+        
+        // Run the image through the scanner to see if it needs the 1px nudge
+        applySmartPadding(img, baseTop);
+        
         img.style.zIndex = 1000 - index; 
         
         if (isMedalsLocked) makeCategoryDraggable(img, 'medals'); else img.ondblclick = () => removeFromRack(medal.id);
@@ -476,8 +535,6 @@ function makeIndividualDraggable(el, awardObj) {
 }
 
 // --- 128x128 EXPORTER ---
-// --- 128x128 EXPORTER ---
-// --- 128x128 EXPORTER ---
 async function generateDecal() {
     if (selectedRack.length === 0) return alert("Please add awards to the preview first.");
 
@@ -502,7 +559,7 @@ async function generateDecal() {
                 img.src = imgEl.src; 
             });
             
-            const left = parseFloat(imgEl.style.left || 0);
+            let left = parseFloat(imgEl.style.left || 0);
             const top = parseFloat(imgEl.style.top || 0);
             
             let width = img.naturalWidth;
@@ -511,6 +568,11 @@ async function generateDecal() {
             // Only parse 'px' values for the awards
             if (imgEl.style.width && imgEl.style.width.includes('px')) width = parseFloat(imgEl.style.width);
             if (imgEl.style.height && imgEl.style.height.includes('px')) height = parseFloat(imgEl.style.height);
+            
+            // Adjust 'left' coordinate if the image uses our new translateX(-50%) logic
+            if (imgEl.style.transform === 'translateX(-50%)') {
+                left = left - (width / 2);
+            }
             
             ctx.drawImage(img, left, top, width, height);
         }
