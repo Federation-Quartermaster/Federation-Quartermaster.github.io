@@ -299,11 +299,10 @@ function renderPreview() {
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
-    // Shifted 2px Left to account for the top-left rendering bias
-    const LEFT_POCKET_CENTER_X = 24;  
-    const RIGHT_POCKET_CENTER_X = 100; 
+    // Anchor points based on your provided 25.5/101.5 centers
+    const LEFT_POCKET_CENTER_X = 26;  
+    const RIGHT_POCKET_CENTER_X = 102; 
 
-    // Updated Line Levels
     const RED_LINE_Y = 33;
     const YELLOW_LINE_Y = 33;
     const GREEN_LINE_Y = 35; 
@@ -319,7 +318,7 @@ function renderPreview() {
     const CITATION_LINE_Y = medalsOnGreen ? RED_LINE_Y : GREEN_LINE_Y;
     const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
 
-    // --- RENDER STANDARD RIBBONS (Right Pocket - Building UP) ---
+    // --- RENDER STANDARD RIBBONS (No Nudge) ---
     const ribbonWidth = 16;
     const ribbonHeight = 4;
     standardRibbons.forEach((ribbon, index) => {
@@ -328,16 +327,12 @@ function renderPreview() {
         img.className = 'rack-item ribbon-item';
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
-        
         const rowWidth = itemsInThisRow * ribbonWidth;
-        const startX = RIBBON_CENTER_X - (rowWidth / 2); 
-        const baseLeft = startX + (col * ribbonWidth);
+        const baseLeft = (RIBBON_CENTER_X - (rowWidth / 2)) + (col * ribbonWidth);
         
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
-        const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset;
-        
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
-        img.style.top = `${baseTop + ribbonsOffsetY}px`; 
+        img.style.top = `${RIBBON_LINE_Y - ribbonHeight - yOffset + ribbonsOffsetY}px`; 
         img.style.width = `${ribbonWidth}px`; 
         img.style.height = `${ribbonHeight}px`; 
         img.style.zIndex = 500 - index;
@@ -346,7 +341,7 @@ function renderPreview() {
         ribbonsContainer.appendChild(img);
     });
 
-    // --- RENDER CITATIONS (Left Pocket - Building UP) ---
+    // --- RENDER CITATIONS (No Nudge) ---
     const citationWidth = 12;
     const citationHeight = 4;
     citations.forEach((citation, index) => {
@@ -355,16 +350,12 @@ function renderPreview() {
         img.className = 'rack-item ribbon-item';
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, citations.length, 4);
-        
         const rowWidth = itemsInThisRow * citationWidth;
-        const startX = CITATION_CENTER_X - (rowWidth / 2);
-        const baseLeft = startX + (col * citationWidth);
+        const baseLeft = (CITATION_CENTER_X - (rowWidth / 2)) + (col * citationWidth);
         
         const yOffset = (totalRows - 1 - row) * citationHeight;
-        const baseTop = CITATION_LINE_Y - citationHeight - yOffset;
-        
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
-        img.style.top = `${baseTop + ribbonsOffsetY}px`; 
+        img.style.top = `${CITATION_LINE_Y - citationHeight - yOffset + ribbonsOffsetY}px`; 
         img.style.width = `${citationWidth}px`; 
         img.style.height = `${citationHeight}px`; 
         img.style.zIndex = 500 - index;
@@ -373,7 +364,7 @@ function renderPreview() {
         citationsContainer.appendChild(img);
     });
 
-    // --- RENDER MEDALS (Dynamic Pocket - Building DOWN) ---
+    // --- RENDER MEDALS (Nudge Logic Applied) ---
     const medalSpacing = 6; 
     const assumedImgWidth = 16; 
     medals.forEach((medal, index) => {
@@ -382,15 +373,16 @@ function renderPreview() {
         img.className = 'rack-item medal-item';
         
         const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
-        
         const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + assumedImgWidth; 
-        const startX = MEDAL_CENTER_X - (rowWidth / 2);
+        let startX = MEDAL_CENTER_X - (rowWidth / 2);
         
-        const baseLeft = startX + (col * medalSpacing);
-        const baseTop = MEDAL_LINE_Y + (row * medalSpacing); 
+        // Nudge the entire row by 1px if even-numbered to center on the 2px zipper
+        if (itemsInThisRow % 2 === 0) {
+            startX += (MEDAL_CENTER_X === LEFT_POCKET_CENTER_X) ? 1 : -1;
+        }
         
-        img.style.left = `${baseLeft + medalsOffsetX}px`;
-        img.style.top = `${baseTop + medalsOffsetY}px`;
+        img.style.left = `${startX + (col * medalSpacing) + medalsOffsetX}px`;
+        img.style.top = `${MEDAL_LINE_Y + (row * medalSpacing) + medalsOffsetY}px`;
         img.style.zIndex = 1000 - index; 
         
         if (isMedalsLocked) makeCategoryDraggable(img, 'medals'); else img.ondblclick = () => removeFromRack(medal.id);
