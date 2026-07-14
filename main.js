@@ -14,11 +14,61 @@ let scale = 4;
 
 // Replace with true fetch logic once bot json is complete
 document.addEventListener("DOMContentLoaded", () => {
-    // MOCK DATA FETCH (Simulating the new JSON structure)
-    // Structure: id, name, category, branch, entity, tier, hasMedal, hasRibbon, ribbonImage, medalImage, precedence
-    // Fetch logic will eventually go here:
-    // fetch('awards.json').then(res => res.json()).then(data => { allAwardsData = data; buildExplorer(); });
+    fetch('awards.json')
+        .then(res => {
+            if (!res.ok) throw new Error("Network response was not ok");
+            return res.json();
+        })
+        .then(data => {
+            // Unify the 4 tables into a single searchable array
+            allAwardsData = unifyAwardsData(data);
+            buildExplorer();
+        })
+        .catch(err => console.error("Failed to load awards:", err));
 });
+
+function unifyAwardsData(data) {
+    let unified = {};
+    
+    // Helper function to map each table into our unified objects
+    const processTable = (tableArray, typeName, imageKey) => {
+        if (!tableArray) return;
+        tableArray.forEach(item => {
+            // Create a unique baseline ID (ignoring tier and type)
+            const baseId = `${item.branch}_${item.folder}_${item.subFolder}_${item.name}`;
+            
+            if (!unified[baseId]) {
+                unified[baseId] = {
+                    id: baseId,
+                    branch: item.branch || "Unknown",
+                    folder: item.folder || "",
+                    subFolder: item.subFolder || "",
+                    name: item.name,
+                    precedence: item.precedence,
+                    tiers: {}, // Stores the specific images per tier
+                    availableTypes: new Set() // Tracks if it has a Medal, Ribbon, etc.
+                };
+            }
+            
+            const tierName = item.tier || "Standard";
+            if (!unified[baseId].tiers[tierName]) unified[baseId].tiers[tierName] = {};
+            
+            // Map the specific image path from the current table
+            if (item[imageKey]) {
+                unified[baseId].tiers[tierName][typeName] = item[imageKey];
+                unified[baseId].availableTypes.add(typeName);
+            }
+        });
+    };
+
+    // Process all 4 tables 
+    processTable(data.Citations, 'Citation', 'citationImage');
+    processTable(data.Ribbons, 'Ribbon', 'ribbonImage');
+    processTable(data.Medals, 'Medal', 'medalImage');
+    processTable(data.Badges, 'Badge', 'badgeImage');
+
+    return Object.values(unified);
+}
 
 // --- UI / LOGIC STATE ---
 function updateTorsoBase() {
