@@ -143,6 +143,9 @@ function createAwardRow(award) {
                 isCitation: activeType === 'Citation',
                 activeImage: award.tiers[selectedTier][activeType],
                 precedence: award.precedence,
+                // ADD THESE TWO LINES TO BOTH PUSHES:
+                folder: award.folder,       
+                subFolder: award.subFolder, 
                 x: null, y: null
             });
             renderPreview();
@@ -206,6 +209,9 @@ function createAwardRow(award) {
                 isCitation: activeType === 'Citation',
                 activeImage: award.tiers[selectedTier][activeType],
                 precedence: award.precedence,
+                // ADD THESE TWO LINES TO BOTH PUSHES:
+                folder: award.folder,       
+                subFolder: award.subFolder, 
                 x: null, y: null
             });
         } else {
