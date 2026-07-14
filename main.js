@@ -462,6 +462,7 @@ function makeIndividualDraggable(el, awardObj) {
 }
 
 // --- 128x128 EXPORTER ---
+// --- 128x128 EXPORTER ---
 async function generateDecal() {
     if (selectedRack.length === 0) return alert("Please add awards to the preview first.");
 
@@ -477,21 +478,36 @@ async function generateDecal() {
         for (let imgEl of domItems) {
             const img = new Image();
             img.crossOrigin = "Anonymous";
-            await new Promise(resolve => { img.onload = resolve; img.src = imgEl.src; });
+            await new Promise(resolve => { 
+                img.onload = resolve; 
+                img.onerror = resolve; // Prevents export crash if an image is missing
+                img.src = imgEl.src; 
+            });
             
             const left = parseFloat(imgEl.style.left || 0);
             const top = parseFloat(imgEl.style.top || 0);
-            const width = imgEl.style.width ? parseFloat(imgEl.style.width) : img.naturalWidth;
-            const height = imgEl.style.height ? parseFloat(imgEl.style.height) : img.naturalHeight;
+            
+            let width = img.naturalWidth;
+            let height = img.naturalHeight;
+            
+            // THE FIX: Force torso to 128x128, only parse 'px' values for the awards
+            if (imgEl.id === 'torso-img') {
+                width = 128;
+                height = 128;
+            } else {
+                if (imgEl.style.width && imgEl.style.width.includes('px')) width = parseFloat(imgEl.style.width);
+                if (imgEl.style.height && imgEl.style.height.includes('px')) height = parseFloat(imgEl.style.height);
+            }
             
             ctx.drawImage(img, left, top, width, height);
         }
 
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL("image/png");
-        link.download = "Custom_Roblox_Uniform_Decal.png";
-        link.click();
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL("image/png");
+            link.download = "Custom_Roblox_Uniform_Decal.png";
+            link.click();
     } catch (error) {
+        console.error(error);
         alert("Failed to compile the image.");
     }
 }
