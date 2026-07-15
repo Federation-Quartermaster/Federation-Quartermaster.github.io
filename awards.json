@@ -5619,6 +5619,18 @@
             "citationImage": null
         },
         {
+            "id": "mil_29",
+            "branch": "Military",
+            "folder": "",
+            "subFolder": "",
+            "name": "29. Operation Crimson Dawn Medal",
+            "precedence": 29,
+            "medalImage": "MedalDatabase/Assets/Medals/Military/29. Operation Crimson Dawn Medal.png",
+            "ribbonImage": null,
+            "badgeImage": null,
+            "citationImage": null
+        },
+        {
             "id": "mil_mjl_1",
             "branch": "Military",
             "folder": "Military Justice League",
