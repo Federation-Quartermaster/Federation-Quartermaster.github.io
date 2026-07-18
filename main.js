@@ -748,7 +748,7 @@ async function executeRobloxUpload() {
                     document.getElementById('final-asset-id').textContent = finalAssetId;
                     
                     // The direct link to configure this specific asset
-                    document.getElementById('dashboard-link').href = `https://create.roblox.com/dashboard/creations/catalog/${finalAssetId}/configure`;
+                    document.getElementById('dashboard-link').href = `https://create.roblox.com/dashboard/creations/store/${finalAssetId}/configure`;
                     
                     // Display the modal
                     document.getElementById('success-modal').style.display = 'flex';
