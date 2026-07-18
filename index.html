@@ -12,6 +12,7 @@
     <header class="top-toolbar">
         <div class="logo">IRF BUILDER</div>
         <div class="global-controls">
+            <button class="tool-btn" id="roblox-login-btn">Login With Roblox</button>
             <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medals</button>
             <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbons</button>
             <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
@@ -19,7 +20,7 @@
                 <option value="custom">Upload Custom...</option>
             </select>
             <input type="file" id="torso-upload" accept="image/png, image/jpeg" style="display:none;" onchange="handleTorsoUpload(event)">
-            <button class="export-btn" onclick="generateDecal()">Export Decal</button>
+            <button class="export-btn" onclick="openExportModal()">Export Decal</button>
         </div>
     </header>
 
@@ -49,6 +50,23 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div id="export-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export Options</h3>
+                <button class="close-btn" onclick="closeExportModal()">✖</button>
+            </div>
+            <div class="modal-body">
+                <p>How would you like to save your custom uniform?</p>
+                <div class="modal-actions">
+                    <button class="tool-btn" onclick="executeDownload()">⬇️ Download Image to Computer</button>
+                    <button class="export-btn" onclick="executeRobloxUpload()">☁️ Upload to Roblox</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="main.js"></script>
