@@ -1,0 +1,35 @@
+name: Log Medal to DataStore
+
+on:
+  workflow_dispatch:
+    inputs:
+      userId:
+        description: 'The Roblox UserID'
+        required: true
+        type: string
+      assetId:
+        description: 'The Generated Decal AssetID'
+        required: true
+        type: string
+
+jobs:
+  update-datastore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Push Entry to Roblox DataStore
+        env:
+          ROBLOX_API_KEY: ${{ secrets.DATASTOREAPI }}
+          # Replace with your specific Game's Universe ID
+          UNIVERSE_ID: "YOUR_UNIVERSE_ID_HERE" 
+          DATASTORE_NAME: "medalDatabase"
+          USER_ID: ${{ inputs.userId }}
+          ASSET_ID: ${{ inputs.assetId }}
+        run: node .github/scripts/updateStore.js
