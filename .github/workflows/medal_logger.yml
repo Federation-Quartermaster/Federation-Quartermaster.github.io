@@ -28,7 +28,7 @@ jobs:
         env:
           ROBLOX_API_KEY: ${{ secrets.DATASTOREAPI }}
           # Replace with your specific Game's Universe ID
-          UNIVERSE_ID: "YOUR_UNIVERSE_ID_HERE" 
+          UNIVERSE_ID: "10475345085" 
           DATASTORE_NAME: "medalDatabase"
           USER_ID: ${{ inputs.userId }}
           ASSET_ID: ${{ inputs.assetId }}
