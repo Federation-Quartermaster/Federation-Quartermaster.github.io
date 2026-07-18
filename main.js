@@ -12,7 +12,9 @@ let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 let scale = 4;
 
 const CLIENT_ID = "7051205101808612404"; // Replace with your Roblox App Client ID
-const REDIRECT_URI = "https://federation-quartermaster.github.io/"; 
+
+// THE NEW REDIRECT URI
+const REDIRECT_URI = "https://federation-quartermaster.github.io/redirect"; 
 
 // --- DATA FETCH & UNIFICATION ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -34,35 +36,25 @@ function unifyAwardsData(data) {
     const processTable = (tableArray, typeName, imageKey) => {
         if (!tableArray) return;
         tableArray.forEach(item => {
-            // 1. Grab raw folder names
             let f = item.folder || "";
             let sf = item.subFolder || "";
             let tierName = item.tier || "Standard";
 
-            // 2. Bot Cleanup: If subFolder or folder is actually a Tier name, map it to tierName and erase the folder
             const tierKeywords = ["Bronze", "Silver", "Gold", "Platinum"];
-            if (tierKeywords.includes(sf)) {
-                tierName = sf;
-                sf = ""; 
-            }
-            if (tierKeywords.includes(f)) {
-                tierName = f;
-                f = "";
-            }
+            if (tierKeywords.includes(sf)) { tierName = sf; sf = ""; }
+            if (tierKeywords.includes(f)) { tierName = f; f = ""; }
 
-            // 3. Bot Cleanup: If the folder name is identical to the award name, erase the folder so it doesn't nest endlessly
             if (f.includes(item.name) || item.name.includes(f)) f = "";
             if (sf.includes(item.name) || item.name.includes(sf)) sf = "";
 
-            // 4. Generate a clean ID using the sanitized folder names
             const baseId = `${item.branch}_${f}_${sf}_${item.name}`;
             
             if (!unified[baseId]) {
                 unified[baseId] = {
                     id: baseId,
                     branch: item.branch || "Unknown",
-                    folder: f,          // Use sanitized folder
-                    subFolder: sf,      // Use sanitized subFolder
+                    folder: f,          
+                    subFolder: sf,      
                     name: item.name,
                     precedence: item.precedence,
                     tiers: {}, 
@@ -134,7 +126,6 @@ function createAwardRow(award) {
     const row = document.createElement('div');
     row.className = 'award-row';
     
-    // Checkbox for adding/removing from rack
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.className = 'activate-btn';
@@ -148,17 +139,13 @@ function createAwardRow(award) {
     row.appendChild(checkbox);
     row.appendChild(nameLabel);
 
-    // Initial States
     const tierKeys = Object.keys(award.tiers);
     let selectedTier = tierKeys[0]; 
     let activeType = Array.from(award.availableTypes)[0]; 
 
-    // Sync state to the visual rack
     const updateRackIfActive = () => {
         if (checkbox.checked) {
-            // Remove old instance
             selectedRack = selectedRack.filter(a => a.id !== award.id);
-            // Add updated instance
             selectedRack.push({
                 id: award.id,
                 name: award.name,
@@ -174,7 +161,6 @@ function createAwardRow(award) {
         }
     };
 
-    // Render Tiers Dropdown
     if (tierKeys.length > 1 || tierKeys[0] !== "Standard") {
         const tierSelect = document.createElement('select');
         tierSelect.className = 'tier-select';
@@ -191,7 +177,6 @@ function createAwardRow(award) {
         row.appendChild(tierSelect);
     }
 
-    // Render Type Toggle (C, R, M, B)
     const typeToggle = document.createElement('div');
     typeToggle.className = 'type-toggle';
     const typeConfigs = [
@@ -221,7 +206,6 @@ function createAwardRow(award) {
     });
     row.appendChild(typeToggle);
 
-    // Checkbox Listener
     checkbox.onchange = (e) => {
         if (e.target.checked) {
             selectedRack.push({
@@ -288,40 +272,31 @@ function removeFromRack(id) {
 
 // --- SMART PADDING DETECTOR ---
 function applySmartPadding(imgElement, baseTop) {
-    // Prevent CORS "tainted canvas" errors when reading pixels
     imgElement.crossOrigin = "Anonymous"; 
 
     const checkPixels = () => {
-        // Create an invisible 1-pixel-tall canvas
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         canvas.width = imgElement.naturalWidth || 16;
         canvas.height = 1; 
         
-        // Draw just the top row of the image onto the canvas
         ctx.drawImage(imgElement, 0, 0);
         
-        // Extract the pixel data (Array format: [R, G, B, Alpha, R, G, B, Alpha...])
         const pixels = ctx.getImageData(0, 0, canvas.width, 1).data;
-        
         let isTopRowTransparent = true;
         
-        // Check the Alpha channel (every 4th value) of the top row
         for (let i = 3; i < pixels.length; i += 4) {
-            if (pixels[i] > 0) { // If Alpha is > 0, there is solid color here
+            if (pixels[i] > 0) { 
                 isTopRowTransparent = false;
                 break;
             }
         }
         
-        // If the top row is NOT transparent (bot cropped it tight), nudge it down
         if (!isTopRowTransparent) {
             imgElement.style.top = `${baseTop + 1}px`;
         }
     };
 
-    // Images take a few milliseconds to load. We must wait for the file 
-    // to exist in memory before checking its pixels.
     if (imgElement.complete) {
         checkPixels();
     } else {
@@ -362,47 +337,35 @@ function renderPreview() {
     const badges = selectedRack.filter(a => a.type === 'Badge');
 
     [standardRibbons, citations, medals].forEach(arr => arr.sort((a, b) => {
-        // 1. Calculate Folder Depth (Root items = 0, Folder items = 1, Subfolder items = 2)
         const aDepth = (a.folder ? 1 : 0) + (a.subFolder ? 1 : 0);
         const bDepth = (b.folder ? 1 : 0) + (b.subFolder ? 1 : 0);
         
-        // Root items always come before deeper items
         if (aDepth !== bDepth) return aDepth - bDepth;
-        
-        // 2. If they are at the same depth, group them by folder alphabetically so they don't intermix
         if (a.folder !== b.folder) return (a.folder || "").localeCompare(b.folder || "");
         if (a.subFolder !== b.subFolder) return (a.subFolder || "").localeCompare(b.subFolder || "");
-        
-        // 3. Finally, sort by their explicit numeric precedence within their specific group
         return a.precedence - b.precedence;
     }));
 
-    // ==========================================
-    // THE MATHEMATICAL MATRIX
-    // ==========================================
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
 
     const LEFT_POCKET_CENTER_X = 26;  
     const RIGHT_POCKET_CENTER_X = 102; 
 
-    // Locked Y-Coordinates
-    const RED_LINE_Y = 33;    // For Citations
-    const GREEN_LINE_Y = 35;  // For Medals
-    const BLUE_LINE_Y = 35;   // For Ribbons (Locked)
+    const RED_LINE_Y = 33;    
+    const GREEN_LINE_Y = 35;  
+    const BLUE_LINE_Y = 35;   
 
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
 
-    // Medals sit on Green if Ribbons exist, otherwise they take the Blue line
     const MEDAL_LINE_Y = hasRibbons ? GREEN_LINE_Y : BLUE_LINE_Y;
     const MEDAL_CENTER_X = hasRibbons ? LEFT_POCKET_CENTER_X : RIGHT_POCKET_CENTER_X;
     
-    // Citations sit on Red if Medals are on Green, otherwise they take the Green line
     const CITATION_LINE_Y = (hasRibbons && hasMedals) ? RED_LINE_Y : GREEN_LINE_Y;
     const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
 
-   // --- RENDER STANDARD RIBBONS (Right Pocket - Building UP) ---
+   // --- RENDER STANDARD RIBBONS ---
     const ribbonWidth = 16;
     const ribbonHeight = 4;
     standardRibbons.forEach((ribbon, index) => {
@@ -411,11 +374,9 @@ function renderPreview() {
         img.className = 'rack-item ribbon-item';
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
-        
         const rowWidth = itemsInThisRow * ribbonWidth;
         const startX = RIBBON_CENTER_X - (rowWidth / 2); 
         const baseLeft = startX + (col * ribbonWidth);
-        
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
         const baseTop = RIBBON_LINE_Y - yOffset; 
         
@@ -429,7 +390,7 @@ function renderPreview() {
         ribbonsContainer.appendChild(img);
     });
 
-   // --- RENDER CITATIONS (Left Pocket - Building UP) ---
+   // --- RENDER CITATIONS ---
     const citationWidth = 12;
     const citationHeight = 4;
     citations.forEach((citation, index) => {
@@ -438,11 +399,9 @@ function renderPreview() {
         img.className = 'rack-item ribbon-item';
         
         const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, citations.length, 4);
-        
         const rowWidth = itemsInThisRow * citationWidth;
         const startX = CITATION_CENTER_X - (rowWidth / 2);
         const baseLeft = startX + (col * citationWidth);
-        
         const yOffset = (totalRows - 1 - row) * citationHeight;
         const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
         
@@ -456,9 +415,9 @@ function renderPreview() {
         citationsContainer.appendChild(img);
     });
 
-    // --- RENDER MEDALS (Center-Anchored + Smart Padding Applied) ---
+    // --- RENDER MEDALS ---
     const medalSpacing = 6; 
-    const ribbonWidthOnly = 16; // We only care about the physical width of the ribbon portion here
+    const ribbonWidthOnly = 16; 
 
     medals.forEach((medal, index) => {
         const img = document.createElement('img');
@@ -466,37 +425,21 @@ function renderPreview() {
         img.className = 'rack-item medal-item';
         
         const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
-        
-        // Calculate the total width of the row based strictly on ribbons and spacing
         const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
         
-        // Apply the 2px leftward nudge if we are on the Left Pocket
         let centerX = MEDAL_CENTER_X;
-        if (centerX === LEFT_POCKET_CENTER_X) {
-            centerX -= 2; 
-        }
+        if (centerX === LEFT_POCKET_CENTER_X) centerX -= 2; 
         
-        // The true starting X coordinate for the row
         let startX = centerX - (rowWidth / 2);
-        
-        // --- 1. THE CENTERING LOGIC ---
-        // Find the exact horizontal center point of this specific grid slot
         let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
         
-        // Assign the 'left' position to that center point
         img.style.left = `${slotCenterX}px`;
-        
-        // Force the image to anchor itself by its horizontal center, rather than its left edge
         img.style.transform = `translateX(-50%)`;
         
-        // --- 2. THE SMART PADDING LOGIC ---
-        // Calculate the base top value normally
         const baseTop = MEDAL_LINE_Y + (row * medalSpacing) + medalsOffsetY;
         img.style.top = `${baseTop}px`;
         
-        // Run the image through the scanner to see if it needs the 1px nudge
         applySmartPadding(img, baseTop);
-        
         img.style.zIndex = 1000 - index; 
         
         if (isMedalsLocked) makeCategoryDraggable(img, 'medals'); else img.ondblclick = () => removeFromRack(medal.id);
@@ -593,14 +536,13 @@ async function generateCodeChallenge(verifier) {
 
 async function initiateRobloxLogin() {
     const verifier = generateRandomString(64);
-    const state = generateRandomString(32); // NEW: Generate state
+    const state = generateRandomString(32); 
 
     sessionStorage.setItem("code_verifier", verifier);
-    sessionStorage.setItem("oauth_state", state); // NEW: Save state
+    sessionStorage.setItem("oauth_state", state); 
 
     const challenge = await generateCodeChallenge(verifier);
     
-    // NEW: Added &state=${state} to the URL
     window.location.href = `https://apis.roblox.com/oauth/v1/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=openid+profile+asset:write&response_type=code&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
 }
 
@@ -609,7 +551,7 @@ async function getValidAccessToken() {
     if (!tokenData) return null;
 
     if (Date.now() >= tokenData.expires_at) {
-        const body = new URLSearchParams({
+        const body = newSearchParams({
             client_id: CLIENT_ID,
             grant_type: "refresh_token",
             refresh_token: tokenData.refresh_token
@@ -637,58 +579,11 @@ async function getValidAccessToken() {
     return tokenData.access_token;
 }
 
+// Cleaned up initialize function, since URL checking is now in the redirect folder
 async function initializeAuth() {
     const btn = document.getElementById("roblox-login-btn");
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get('code');
-    const returnedState = urlParams.get('state'); // NEW: Grab returned state
-
-    if (authCode) {
-        const savedState = sessionStorage.getItem("oauth_state");
-        
-        // NEW: Validate the state to ensure the redirect wasn't tampered with
-        if (returnedState !== savedState) {
-            console.error("State mismatch! Possible CSRF attack.");
-            alert("Authentication failed: Security state mismatch.");
-            sessionStorage.removeItem("code_verifier");
-            sessionStorage.removeItem("oauth_state");
-            return;
-        }
-
-        btn.textContent = "Authenticating...";
-        btn.disabled = true;
-        const codeVerifier = sessionStorage.getItem("code_verifier");
-        
-        try {
-            const response = await fetch("https://apis.roblox.com/oauth/v1/token", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({
-                    client_id: CLIENT_ID,
-                    grant_type: "authorization_code",
-                    code: authCode,
-                    code_verifier: codeVerifier
-                })
-            });
-            const data = await response.json();
-            if (data.access_token) {
-                localStorage.setItem("roblox_auth", JSON.stringify({
-                    access_token: data.access_token,
-                    refresh_token: data.refresh_token,
-                    expires_at: Date.now() + (data.expires_in * 1000)
-                }));
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        } catch (e) {
-            console.error("Auth error", e);
-        }
-        
-        // Cleanup storage
-        sessionStorage.removeItem("code_verifier");
-        sessionStorage.removeItem("oauth_state");
-    }
-
     const activeToken = await getValidAccessToken();
+    
     if (activeToken) {
         btn.textContent = "Roblox: Connected";
         btn.classList.add("export-btn"); 
@@ -704,7 +599,6 @@ async function initializeAuth() {
     }
 }
 
-// Attach the Roblox Auth logic to run on load
 document.addEventListener("DOMContentLoaded", initializeAuth);
 
 function openExportModal() {
@@ -716,7 +610,6 @@ function closeExportModal() {
     document.getElementById('export-modal').style.display = 'none';
 }
 
-// Reusable function to compile the canvas
 async function buildCanvas() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -757,7 +650,6 @@ async function buildCanvas() {
     }
 }
 
-// Action 1: Standard Download
 async function executeDownload() {
     closeExportModal();
     const canvas = await buildCanvas();
@@ -769,7 +661,6 @@ async function executeDownload() {
     link.click();
 }
 
-// Action 2: Roblox API Upload
 async function executeRobloxUpload() {
     const activeToken = await getValidAccessToken();
     
