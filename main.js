@@ -672,6 +672,11 @@ async function executeRobloxUpload() {
         return;
     }
 
+    // Add this anywhere in main.js to handle closing the new modal
+    function closeSuccessModal() {
+        document.getElementById('success-modal').style.display = 'none';
+    }
+
     closeExportModal();
     
     const exportBtn = document.querySelector('.export-btn'); 
@@ -735,10 +740,21 @@ async function executeRobloxUpload() {
                     }
                 }
 
+               // ... (inside the polling loop where finalAssetId is found)
                 if (finalAssetId) {
-                    alert(`Upload successful! Your Decal Asset ID is: ${finalAssetId}`);
                     console.log("Successfully created Asset ID:", finalAssetId);
-                    // You can now manipulate the DOM to show the user their ID, or create a direct link to it!
+                    
+                    // Inject the dynamic ID and Link into the HTML modal
+                    document.getElementById('final-asset-id').textContent = finalAssetId;
+                    
+                    // The direct link to configure this specific asset
+                    document.getElementById('dashboard-link').href = `https://create.roblox.com/dashboard/creations/catalog/${finalAssetId}/configure`;
+                    
+                    // Display the modal
+                    document.getElementById('success-modal').style.display = 'flex';
+                    
+                    // TODO: The JSON logging for your DataStore implementation can be fired here!
+                    
                 } else {
                     alert("Upload initiated, but timed out waiting for the final ID. Check your Roblox inventory in a few minutes.");
                 }
