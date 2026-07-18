@@ -8,6 +8,25 @@ let isRibbonsLocked = false;
 let medalsOffsetX = 0, medalsOffsetY = 0;
 let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 
+
+// Function to handle modal closing
+function closeSuccessModal() {
+    document.getElementById('success-modal').style.display = 'none';
+}
+
+// Function to copy ID and prepare for Discord
+function copyAssetIdToClipboard() {
+    const assetId = document.getElementById('final-asset-id').textContent;
+    if (assetId) {
+        navigator.clipboard.writeText(assetId).then(() => {
+            console.log("Asset ID copied to clipboard:", assetId);
+        }).catch(err => {
+            console.error("Failed to copy: ", err);
+        });
+    }
+}
+
+
 // Camera Zoom/Pan Engine
 let scale = 4;
 
@@ -667,9 +686,6 @@ async function executeRobloxUpload() {
         return;
     }
 
-    function closeSuccessModal() {
-        document.getElementById('success-modal').style.display = 'none';
-    }
 
     closeExportModal();
     
@@ -755,28 +771,4 @@ async function executeRobloxUpload() {
             exportBtn.disabled = false;
         }
     }, "image/png");
-}
-
-async function triggerDatabaseUpdate(userId, assetId) {
-    try {
-        const response = await fetch('https://api.github.com/repos/Federation-Quartermaster/Federation-Quartermaster.github.io/dispatches', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'token YOUR_GITHUB_PAT', 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                "event_type": "update_database",
-                "client_payload": { "uid": String(userId), "aid": String(assetId) }
-            })
-        });
-        
-        if (response.ok) {
-            console.log(`Successfully dispatched DB update for User: ${userId}, Asset: ${assetId}`);
-        } else {
-            console.error("Failed to trigger GitHub Action:", await response.text());
-        }
-    } catch (error) {
-        console.error("Error sending dispatch to GitHub:", error);
-    }
 }
