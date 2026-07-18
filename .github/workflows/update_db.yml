@@ -1,0 +1,42 @@
+name: Update Database
+on:
+  repository_dispatch:
+    types: [update_database]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update JSON
+        shell: python
+        env:
+          PAYLOAD: ${{ toJson(github.event.client_payload) }}
+        run: |
+          import json, os
+          data = json.loads(os.environ['PAYLOAD'])
+          uid, aid = str(data['uid']), str(data['aid'])
+          
+          # Load existing
+          with open('medalDatabase/datastore.json', 'r') as f:
+            db = json.load(f)
+            
+          # Update
+          if uid not in db:
+            db[uid] = {"ownedMedals": [], "lastUpdated": "2026-07-18"}
+          if aid not in db[uid]['ownedMedals']:
+            db[uid]['ownedMedals'].append(aid)
+            
+          # Save
+          with open('medalDatabase/datastore.json', 'w') as f:
+            json.dump(db, f, indent=4)
+            
+      - name: Commit changes
+        run: |
+          git config user.name "Bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add medalDatabase/datastore.json
+          git commit -m "Update medal for ${{ github.event.client_payload.uid }}"
+          git push
