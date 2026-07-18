@@ -661,6 +661,7 @@ async function executeDownload() {
     link.click();
 }
 
+// Action 2: Roblox API Upload (With Polling for Asset ID)
 async function executeRobloxUpload() {
     const activeToken = await getValidAccessToken();
     
@@ -684,20 +685,23 @@ async function executeRobloxUpload() {
 
     canvas.toBlob(async (blob) => {
         try {
+            // 1. Get the User ID
             const userInfoRes = await fetch("https://apis.roblox.com/oauth/v1/userinfo", {
                 headers: { "Authorization": `Bearer ${activeToken}` }
             });
             const userInfo = await userInfoRes.json();
 
+            // 2. Prepare the Upload Payload
             const formData = new FormData();
             formData.append("request", JSON.stringify({
                 assetType: "Decal",
                 creationContext: { creator: { userId: userInfo.sub } },
-                displayName: "IRF Uniform",
-                description: "Generated via IRF Builder"
+                displayName: "Medals",
+                description: "Generated Via Federation Quartermaster Rack Builder"
             }));
             formData.append("fileContent", blob, "uniform.png");
 
+            // 3. Initiate the Upload
             const uploadRes = await fetch("https://apis.roblox.com/assets/v1/assets", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${activeToken}` },
@@ -706,8 +710,37 @@ async function executeRobloxUpload() {
             
             const uploadData = await uploadRes.json();
             
-            if (uploadRes.ok) {
-                alert("Upload successful! The asset is now processing in your Roblox inventory.");
+            if (uploadRes.ok && uploadData.path) {
+                exportBtn.textContent = "Processing Asset...";
+                const operationPath = uploadData.path; // Looks like "operations/xxxxxxxx-xxxx..."
+                let finalAssetId = null;
+
+                // 4. Poll the Operation API until the asset is finished processing
+                for (let i = 0; i < 10; i++) { // Try 10 times (20 seconds total)
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between checks
+                    
+                    // Roblox Open Cloud Operations standard endpoint
+                    const opRes = await fetch(`https://apis.roblox.com/operations/v1/${operationPath}`, {
+                        headers: { "Authorization": `Bearer ${activeToken}` }
+                    });
+                    
+                    const opData = await opRes.json();
+                    
+                    // If the operation is finished, grab the Asset ID
+                    if (opData.done) {
+                        finalAssetId = opData.response?.assetId;
+                        break;
+                    }
+                }
+
+                if (finalAssetId) {
+                    alert(`Upload successful! Your Decal Asset ID is: ${finalAssetId}`);
+                    console.log("Successfully created Asset ID:", finalAssetId);
+                    // You can now manipulate the DOM to show the user their ID, or create a direct link to it!
+                } else {
+                    alert("Upload initiated, but timed out waiting for the final ID. Check your Roblox inventory in a few minutes.");
+                }
+                
             } else {
                 console.error("Upload Error Data:", uploadData);
                 alert("Roblox API rejected the upload. See console for details.");
