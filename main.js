@@ -593,9 +593,15 @@ async function generateCodeChallenge(verifier) {
 
 async function initiateRobloxLogin() {
     const verifier = generateRandomString(64);
+    const state = generateRandomString(32); // NEW: Generate state
+
     sessionStorage.setItem("code_verifier", verifier);
+    sessionStorage.setItem("oauth_state", state); // NEW: Save state
+
     const challenge = await generateCodeChallenge(verifier);
-    window.location.href = `https://apis.roblox.com/oauth/v1/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=openid+profile+asset:write&response_type=code&code_challenge=${challenge}&code_challenge_method=S256`;
+    
+    // NEW: Added &state=${state} to the URL
+    window.location.href = `https://apis.roblox.com/oauth/v1/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=openid+profile+asset:write&response_type=code&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
 }
 
 async function getValidAccessToken() {
@@ -635,8 +641,20 @@ async function initializeAuth() {
     const btn = document.getElementById("roblox-login-btn");
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get('code');
+    const returnedState = urlParams.get('state'); // NEW: Grab returned state
 
     if (authCode) {
+        const savedState = sessionStorage.getItem("oauth_state");
+        
+        // NEW: Validate the state to ensure the redirect wasn't tampered with
+        if (returnedState !== savedState) {
+            console.error("State mismatch! Possible CSRF attack.");
+            alert("Authentication failed: Security state mismatch.");
+            sessionStorage.removeItem("code_verifier");
+            sessionStorage.removeItem("oauth_state");
+            return;
+        }
+
         btn.textContent = "Authenticating...";
         btn.disabled = true;
         const codeVerifier = sessionStorage.getItem("code_verifier");
@@ -664,7 +682,10 @@ async function initializeAuth() {
         } catch (e) {
             console.error("Auth error", e);
         }
+        
+        // Cleanup storage
         sessionStorage.removeItem("code_verifier");
+        sessionStorage.removeItem("oauth_state");
     }
 
     const activeToken = await getValidAccessToken();
