@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authenticating with Roblox...</title>
+    <style>
+        body { 
+            background: #121212; 
+            color: #00a8ff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: #00a8ff;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+    <h2>Connecting to Roblox...</h2>
+
+    <script>
+        // REPLACE THIS WITH YOUR CLIENT ID
+        const CLIENT_ID = "7051205101808612404"; 
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const authCode = urlParams.get('code');
+        const returnedState = urlParams.get('state');
+        
+        const savedState = sessionStorage.getItem("oauth_state");
+        const codeVerifier = sessionStorage.getItem("code_verifier");
+
+        if (authCode) {
+            if (returnedState !== savedState) {
+                alert("Security state mismatch! Authentication aborted to prevent CSRF attacks.");
+                sessionStorage.clear();
+                window.location.href = "/"; // Go back to root
+            } else {
+                // Exchange code for Access Token
+                fetch("https://apis.roblox.com/oauth/v1/token", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        client_id: CLIENT_ID,
+                        grant_type: "authorization_code",
+                        code: authCode,
+                        code_verifier: codeVerifier
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.access_token) {
+                        localStorage.setItem("roblox_auth", JSON.stringify({
+                            access_token: data.access_token,
+                            refresh_token: data.refresh_token,
+                            expires_at: Date.now() + (data.expires_in * 1000)
+                        }));
+                    }
+                    // Clean up and send the user back to the main app
+                    sessionStorage.removeItem("code_verifier");
+                    sessionStorage.removeItem("oauth_state");
+                    window.location.href = "/"; 
+                })
+                .catch(e => {
+                    console.error("Auth error", e);
+                    alert("Failed to authenticate with Roblox.");
+                    window.location.href = "/";
+                });
+            }
+        } else {
+            // If someone navigates here manually without a code, send them away
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>
