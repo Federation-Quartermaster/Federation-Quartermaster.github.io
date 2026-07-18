@@ -721,8 +721,8 @@ async function executeRobloxUpload() {
                 for (let i = 0; i < 10; i++) { // Try 10 times (20 seconds total)
                     await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between checks
                     
-                    // Roblox Open Cloud Operations standard endpoint
-                    const opRes = await fetch(`https://apis.roblox.com/operations/v1/${operationPath}`, {
+                    // Corrected Assets API Operations endpoint
+                    const opRes = await fetch(`https://apis.roblox.com/assets/v1/${operationPath}`, {
                         headers: { "Authorization": `Bearer ${activeToken}` }
                     });
                     
