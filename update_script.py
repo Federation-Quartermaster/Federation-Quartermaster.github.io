@@ -31,6 +31,6 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add medalDatabase/datastore.json
+          git add MedalDatabase/datastore.json
           git commit -m "Auto-update datastore with new asset ID"
           git push
