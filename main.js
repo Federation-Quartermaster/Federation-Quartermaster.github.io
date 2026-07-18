@@ -752,7 +752,6 @@ async function executeRobloxUpload() {
                     document.getElementById('success-modal').style.display = 'flex';
                     
                     // Pipeline Update
-                    await triggerDatabaseUpdate(userInfo.sub, finalAssetId);
                     
                 } else {
                     alert("Upload initiated, but timed out waiting for the final ID. Check your Roblox inventory in a few minutes.");
