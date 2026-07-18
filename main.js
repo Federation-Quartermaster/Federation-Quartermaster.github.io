@@ -1,6 +1,7 @@
 // --- GLOBALS ---
 let allAwardsData = [];
 let selectedRack = [];
+let lastSubmissionData = ""; // Added to track submission format
 
 // Drag & Lock States
 let isMedalsLocked = false;
@@ -8,24 +9,20 @@ let isRibbonsLocked = false;
 let medalsOffsetX = 0, medalsOffsetY = 0;
 let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 
-
-// Function to handle modal closing
+// --- MODAL HELPERS ---
 function closeSuccessModal() {
     document.getElementById('success-modal').style.display = 'none';
 }
 
-// Function to copy ID and prepare for Discord
 function copyAssetIdToClipboard() {
-    const assetId = document.getElementById('final-asset-id').textContent;
-    if (assetId) {
-        navigator.clipboard.writeText(assetId).then(() => {
-            console.log("Asset ID copied to clipboard:", assetId);
+    if (lastSubmissionData) {
+        navigator.clipboard.writeText(lastSubmissionData).then(() => {
+            console.log("Submission data copied to clipboard:", lastSubmissionData);
         }).catch(err => {
             console.error("Failed to copy: ", err);
         });
     }
 }
-
 
 // Camera Zoom/Pan Engine
 let scale = 4;
@@ -686,7 +683,6 @@ async function executeRobloxUpload() {
         return;
     }
 
-
     closeExportModal();
     
     const exportBtn = document.querySelector('.export-btn'); 
@@ -747,11 +743,12 @@ async function executeRobloxUpload() {
                 if (finalAssetId) {
                     console.log("Successfully created Asset ID:", finalAssetId);
                     
+                    // Set global variable for clipboard
+                    lastSubmissionData = `${userInfo.sub}, ${finalAssetId}`;
+                    
                     document.getElementById('final-asset-id').textContent = finalAssetId;
                     document.getElementById('dashboard-link').href = `https://create.roblox.com/dashboard/creations/store/${finalAssetId}/configure`;
                     document.getElementById('success-modal').style.display = 'flex';
-                    
-                    // Pipeline Update
                     
                 } else {
                     alert("Upload initiated, but timed out waiting for the final ID. Check your Roblox inventory in a few minutes.");
