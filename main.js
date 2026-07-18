@@ -551,11 +551,13 @@ async function getValidAccessToken() {
     if (!tokenData) return null;
 
     if (Date.now() >= tokenData.expires_at) {
-        const body = newSearchParams({
+        // --- THIS IS THE LINE TO FIX ---
+        const body = new URLSearchParams({ 
             client_id: CLIENT_ID,
             grant_type: "refresh_token",
             refresh_token: tokenData.refresh_token
         });
+        
         try {
             const response = await fetch("https://apis.roblox.com/oauth/v1/token", {
                 method: "POST",
