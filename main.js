@@ -11,6 +11,9 @@ let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 // Camera Zoom/Pan Engine
 let scale = 4;
 
+const CLIENT_ID = "7051205101808612404"; // Replace with your Roblox App Client ID
+const REDIRECT_URI = "https://federation-quartermaster.github.io/"; 
+
 // --- DATA FETCH & UNIFICATION ---
 document.addEventListener("DOMContentLoaded", () => {
     fetch('awards.json')
@@ -163,7 +166,6 @@ function createAwardRow(award) {
                 isCitation: activeType === 'Citation',
                 activeImage: award.tiers[selectedTier][activeType],
                 precedence: award.precedence,
-                // ADD THESE TWO LINES TO BOTH PUSHES:
                 folder: award.folder,       
                 subFolder: award.subFolder, 
                 x: null, y: null
@@ -229,7 +231,6 @@ function createAwardRow(award) {
                 isCitation: activeType === 'Citation',
                 activeImage: award.tiers[selectedTier][activeType],
                 precedence: award.precedence,
-                // ADD THESE TWO LINES TO BOTH PUSHES:
                 folder: award.folder,       
                 subFolder: award.subFolder, 
                 x: null, y: null
@@ -478,8 +479,6 @@ function renderPreview() {
         // The true starting X coordinate for the row
         let startX = centerX - (rowWidth / 2);
         
-        // [REMOVED THE EVEN-ROW 1PX NUDGE HERE]
-        
         // --- 1. THE CENTERING LOGIC ---
         // Find the exact horizontal center point of this specific grid slot
         let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
@@ -572,17 +571,138 @@ function makeIndividualDraggable(el, awardObj) {
     function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
 }
 
-// --- 128x128 EXPORTER ---
-async function generateDecal() {
-    if (selectedRack.length === 0) return alert("Please add awards to the preview first.");
+// ==========================================
+// ROBLOX OAUTH & EXPORT ENGINE
+// ==========================================
+function generateRandomString(length) {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const randomValues = new Uint8Array(length);
+    window.crypto.getRandomValues(randomValues);
+    for (let i = 0; i < length; i++) result += charset[randomValues[i] % charset.length];
+    return result;
+}
 
+async function generateCodeChallenge(verifier) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const digest = await window.crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function initiateRobloxLogin() {
+    const verifier = generateRandomString(64);
+    sessionStorage.setItem("code_verifier", verifier);
+    const challenge = await generateCodeChallenge(verifier);
+    window.location.href = `https://apis.roblox.com/oauth/v1/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=openid+profile+asset:write&response_type=code&code_challenge=${challenge}&code_challenge_method=S256`;
+}
+
+async function getValidAccessToken() {
+    const tokenData = JSON.parse(localStorage.getItem("roblox_auth"));
+    if (!tokenData) return null;
+
+    if (Date.now() >= tokenData.expires_at) {
+        const body = new URLSearchParams({
+            client_id: CLIENT_ID,
+            grant_type: "refresh_token",
+            refresh_token: tokenData.refresh_token
+        });
+        try {
+            const response = await fetch("https://apis.roblox.com/oauth/v1/token", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: body
+            });
+            const data = await response.json();
+            if (data.access_token) {
+                tokenData.access_token = data.access_token;
+                tokenData.refresh_token = data.refresh_token;
+                tokenData.expires_at = Date.now() + (data.expires_in * 1000);
+                localStorage.setItem("roblox_auth", JSON.stringify(tokenData));
+            } else {
+                localStorage.removeItem("roblox_auth");
+                return null;
+            }
+        } catch (err) {
+            return null;
+        }
+    }
+    return tokenData.access_token;
+}
+
+async function initializeAuth() {
+    const btn = document.getElementById("roblox-login-btn");
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('code');
+
+    if (authCode) {
+        btn.textContent = "Authenticating...";
+        btn.disabled = true;
+        const codeVerifier = sessionStorage.getItem("code_verifier");
+        
+        try {
+            const response = await fetch("https://apis.roblox.com/oauth/v1/token", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({
+                    client_id: CLIENT_ID,
+                    grant_type: "authorization_code",
+                    code: authCode,
+                    code_verifier: codeVerifier
+                })
+            });
+            const data = await response.json();
+            if (data.access_token) {
+                localStorage.setItem("roblox_auth", JSON.stringify({
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                    expires_at: Date.now() + (data.expires_in * 1000)
+                }));
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (e) {
+            console.error("Auth error", e);
+        }
+        sessionStorage.removeItem("code_verifier");
+    }
+
+    const activeToken = await getValidAccessToken();
+    if (activeToken) {
+        btn.textContent = "Roblox: Connected";
+        btn.classList.add("export-btn"); 
+        btn.onclick = () => {
+            if(confirm("Disconnect from Roblox?")) {
+                localStorage.removeItem("roblox_auth");
+                window.location.reload();
+            }
+        };
+    } else {
+        btn.textContent = "Login With Roblox";
+        btn.onclick = initiateRobloxLogin;
+    }
+}
+
+// Attach the Roblox Auth logic to run on load
+document.addEventListener("DOMContentLoaded", initializeAuth);
+
+function openExportModal() {
+    if (selectedRack.length === 0) return alert("Please add awards to the preview first.");
+    document.getElementById('export-modal').style.display = 'flex';
+}
+
+function closeExportModal() {
+    document.getElementById('export-modal').style.display = 'none';
+}
+
+// Reusable function to compile the canvas
+async function buildCanvas() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = 128; canvas.height = 128;
     ctx.imageSmoothingEnabled = false;
 
     try {
-        // Gather all images in the canvas, but FILTER OUT the torso background
         const domItems = Array.from(document.querySelectorAll('#preview-canvas img'))
             .filter(imgEl => imgEl.id !== 'torso-img');
             
@@ -593,34 +713,100 @@ async function generateDecal() {
             img.crossOrigin = "Anonymous";
             await new Promise(resolve => { 
                 img.onload = resolve; 
-                img.onerror = resolve; // Prevents export crash if an image is missing
+                img.onerror = resolve; 
                 img.src = imgEl.src; 
             });
             
             let left = parseFloat(imgEl.style.left || 0);
             const top = parseFloat(imgEl.style.top || 0);
-            
             let width = img.naturalWidth;
             let height = img.naturalHeight;
             
-            // Only parse 'px' values for the awards
             if (imgEl.style.width && imgEl.style.width.includes('px')) width = parseFloat(imgEl.style.width);
             if (imgEl.style.height && imgEl.style.height.includes('px')) height = parseFloat(imgEl.style.height);
-            
-            // Adjust 'left' coordinate if the image uses our new translateX(-50%) logic
-            if (imgEl.style.transform === 'translateX(-50%)') {
-                left = left - (width / 2);
-            }
+            if (imgEl.style.transform === 'translateX(-50%)') left = left - (width / 2);
             
             ctx.drawImage(img, left, top, width, height);
         }
-
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL("image/png");
-        link.download = "Custom_Roblox_Uniform_Decal.png";
-        link.click();
+        return canvas;
     } catch (error) {
         console.error(error);
         alert("Failed to compile the image.");
+        return null;
     }
+}
+
+// Action 1: Standard Download
+async function executeDownload() {
+    closeExportModal();
+    const canvas = await buildCanvas();
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL("image/png");
+    link.download = "Custom_Roblox_Uniform_Decal.png";
+    link.click();
+}
+
+// Action 2: Roblox API Upload
+async function executeRobloxUpload() {
+    const activeToken = await getValidAccessToken();
+    
+    if (!activeToken) {
+        alert("You must log in with Roblox first to use this feature!");
+        return;
+    }
+
+    closeExportModal();
+    
+    const exportBtn = document.querySelector('.export-btn'); 
+    exportBtn.textContent = "Uploading to Roblox...";
+    exportBtn.disabled = true;
+
+    const canvas = await buildCanvas();
+    if (!canvas) {
+        exportBtn.textContent = "Export Decal";
+        exportBtn.disabled = false;
+        return;
+    }
+
+    canvas.toBlob(async (blob) => {
+        try {
+            const userInfoRes = await fetch("https://apis.roblox.com/oauth/v1/userinfo", {
+                headers: { "Authorization": `Bearer ${activeToken}` }
+            });
+            const userInfo = await userInfoRes.json();
+
+            const formData = new FormData();
+            formData.append("request", JSON.stringify({
+                assetType: "Decal",
+                creationContext: { creator: { userId: userInfo.sub } },
+                displayName: "IRF Uniform",
+                description: "Generated via IRF Builder"
+            }));
+            formData.append("fileContent", blob, "uniform.png");
+
+            const uploadRes = await fetch("https://apis.roblox.com/assets/v1/assets", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${activeToken}` },
+                body: formData
+            });
+            
+            const uploadData = await uploadRes.json();
+            
+            if (uploadRes.ok) {
+                alert("Upload successful! The asset is now processing in your Roblox inventory.");
+            } else {
+                console.error("Upload Error Data:", uploadData);
+                alert("Roblox API rejected the upload. See console for details.");
+            }
+            
+        } catch (uploadError) {
+            console.error("Upload failed:", uploadError);
+            alert("Failed to reach Roblox servers. Check the console for details.");
+        } finally {
+            exportBtn.textContent = "Export Decal";
+            exportBtn.disabled = false;
+        }
+    }, "image/png");
 }
