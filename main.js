@@ -11,9 +11,7 @@ let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 // Camera Zoom/Pan Engine
 let scale = 4;
 
-const CLIENT_ID = "7051205101808612404"; // Replace with your Roblox App Client ID
-
-// THE NEW REDIRECT URI
+const CLIENT_ID = "7051205101808612404";
 const REDIRECT_URI = "https://federation-quartermaster.github.io/redirect"; 
 
 // --- DATA FETCH & UNIFICATION ---
@@ -551,7 +549,6 @@ async function getValidAccessToken() {
     if (!tokenData) return null;
 
     if (Date.now() >= tokenData.expires_at) {
-        // --- THIS IS THE LINE TO FIX ---
         const body = new URLSearchParams({ 
             client_id: CLIENT_ID,
             grant_type: "refresh_token",
@@ -581,7 +578,6 @@ async function getValidAccessToken() {
     return tokenData.access_token;
 }
 
-// Cleaned up initialize function, since URL checking is now in the redirect folder
 async function initializeAuth() {
     const btn = document.getElementById("roblox-login-btn");
     const activeToken = await getValidAccessToken();
@@ -663,7 +659,6 @@ async function executeDownload() {
     link.click();
 }
 
-// Action 2: Roblox API Upload (With Polling for Asset ID)
 async function executeRobloxUpload() {
     const activeToken = await getValidAccessToken();
     
@@ -672,7 +667,6 @@ async function executeRobloxUpload() {
         return;
     }
 
-    // Add this anywhere in main.js to handle closing the new modal
     function closeSuccessModal() {
         document.getElementById('success-modal').style.display = 'none';
     }
@@ -692,13 +686,11 @@ async function executeRobloxUpload() {
 
     canvas.toBlob(async (blob) => {
         try {
-            // 1. Get the User ID
             const userInfoRes = await fetch("https://apis.roblox.com/oauth/v1/userinfo", {
                 headers: { "Authorization": `Bearer ${activeToken}` }
             });
             const userInfo = await userInfoRes.json();
 
-            // 2. Prepare the Upload Payload
             const formData = new FormData();
             formData.append("request", JSON.stringify({
                 assetType: "Decal",
@@ -708,7 +700,6 @@ async function executeRobloxUpload() {
             }));
             formData.append("fileContent", blob, "uniform.png");
 
-            // 3. Initiate the Upload
             const uploadRes = await fetch("https://apis.roblox.com/assets/v1/assets", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${activeToken}` },
@@ -719,41 +710,33 @@ async function executeRobloxUpload() {
             
             if (uploadRes.ok && uploadData.path) {
                 exportBtn.textContent = "Processing Asset...";
-                const operationPath = uploadData.path; // Looks like "operations/xxxxxxxx-xxxx..."
+                const operationPath = uploadData.path; 
                 let finalAssetId = null;
 
-                // 4. Poll the Operation API until the asset is finished processing
-                for (let i = 0; i < 10; i++) { // Try 10 times (20 seconds total)
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between checks
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     
-                    // Corrected Assets API Operations endpoint
                     const opRes = await fetch(`https://apis.roblox.com/assets/v1/${operationPath}`, {
                         headers: { "Authorization": `Bearer ${activeToken}` }
                     });
                     
                     const opData = await opRes.json();
                     
-                    // If the operation is finished, grab the Asset ID
                     if (opData.done) {
                         finalAssetId = opData.response?.assetId;
                         break;
                     }
                 }
 
-               // ... (inside the polling loop where finalAssetId is found)
                 if (finalAssetId) {
                     console.log("Successfully created Asset ID:", finalAssetId);
                     
-                    // Inject the dynamic ID and Link into the HTML modal
                     document.getElementById('final-asset-id').textContent = finalAssetId;
-                    
-                    // The direct link to configure this specific asset
                     document.getElementById('dashboard-link').href = `https://create.roblox.com/dashboard/creations/store/${finalAssetId}/configure`;
-                    
-                    // Display the modal
                     document.getElementById('success-modal').style.display = 'flex';
                     
-                    // TODO: The JSON logging for your DataStore implementation can be fired here!
+                    // Pipeline Update
+                    await triggerDatabaseUpdate(userInfo.sub, finalAssetId);
                     
                 } else {
                     alert("Upload initiated, but timed out waiting for the final ID. Check your Roblox inventory in a few minutes.");
@@ -772,4 +755,28 @@ async function executeRobloxUpload() {
             exportBtn.disabled = false;
         }
     }, "image/png");
+}
+
+async function triggerDatabaseUpdate(userId, assetId) {
+    try {
+        const response = await fetch('https://api.github.com/repos/Federation-Quartermaster/Federation-Quartermaster.github.io/dispatches', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'token YOUR_GITHUB_PAT', 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "event_type": "update_database",
+                "client_payload": { "uid": String(userId), "aid": String(assetId) }
+            })
+        });
+        
+        if (response.ok) {
+            console.log(`Successfully dispatched DB update for User: ${userId}, Asset: ${assetId}`);
+        } else {
+            console.error("Failed to trigger GitHub Action:", await response.text());
+        }
+    } catch (error) {
+        console.error("Error sending dispatch to GitHub:", error);
+    }
 }
