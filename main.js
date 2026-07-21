@@ -599,17 +599,36 @@ async function initializeAuth() {
     const activeToken = await getValidAccessToken();
     
     if (activeToken) {
-        btn.textContent = "Roblox: Connected";
-        btn.classList.add("export-btn"); 
-        btn.onclick = () => {
-            if(confirm("Disconnect from Roblox?")) {
-                localStorage.removeItem("roblox_auth");
-                window.location.reload();
-            }
-        };
+        // 1. Hide the full-screen login gateway because the user is authorized
+        const overlay = document.getElementById('login-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+
+        // 2. Spawn a Disconnect button in the top toolbar so they can still log out
+        const globalControls = document.querySelector('.global-controls');
+        if (globalControls && !document.getElementById('disconnect-btn')) {
+            const disconnectBtn = document.createElement('button');
+            disconnectBtn.id = 'disconnect-btn';
+            disconnectBtn.className = 'tool-btn';
+            disconnectBtn.style.backgroundColor = '#d9534f'; // Red color to stand out
+            disconnectBtn.style.borderColor = '#d43f3a';
+            disconnectBtn.textContent = 'Disconnect Roblox';
+            disconnectBtn.onclick = () => {
+                if(confirm("Disconnect from Roblox?")) {
+                    localStorage.removeItem("roblox_auth");
+                    window.location.reload();
+                }
+            };
+            // Prepend puts it at the far left of the toolbar controls
+            globalControls.prepend(disconnectBtn); 
+        }
     } else {
-        btn.textContent = "Login With Roblox";
-        btn.onclick = initiateRobloxLogin;
+        // User is not logged in: Button triggers the OAuth flow
+        if (btn) {
+            btn.textContent = "Connect to Roblox";
+            btn.onclick = initiateRobloxLogin;
+        }
     }
 }
 
