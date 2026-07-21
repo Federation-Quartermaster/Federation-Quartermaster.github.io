@@ -209,3 +209,91 @@ summary:hover { background-color: #2a2a2a; }
     padding: 10px; 
     font-size: 14px; 
 }
+
+/* --- AUTHENTICATION GATEWAY OVERLAY --- */
+#login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(18, 18, 18, 0.95);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.auth-container {
+    background: #1e1e1e;
+    padding: 40px;
+    border-radius: 12px;
+    border: 2px solid #00A2FF;
+    box-shadow: 0 10px 30px rgba(0, 162, 255, 0.2);
+    max-width: 500px;
+}
+
+.auth-container h2 {
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.reviewer-note-box {
+    background: rgba(255, 204, 0, 0.1);
+    border-left: 4px solid #ffcc00;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.reviewer-note-box strong {
+    color: #ffcc00;
+}
+
+.reviewer-note-box p {
+    color: #dddddd;
+    font-size: 0.95em;
+    margin: 5px 0 0 0;
+    line-height: 1.4;
+}
+
+.connect-roblox-btn {
+    background-color: #00A2FF;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.connect-roblox-btn:hover {
+    background-color: #0081CC;
+}
+
+.connect-roblox-btn:active {
+    transform: scale(0.98);
+}
+
+.policy-links {
+    margin-top: 25px;
+    font-size: 0.9em;
+}
+
+.policy-links a {
+    color: #00A2FF;
+    text-decoration: none;
+    margin: 0 10px;
+    transition: color 0.2s;
+}
+
+.policy-links a:hover {
+    color: #008cd6;
+    text-decoration: underline;
+}
