@@ -432,7 +432,9 @@ function renderPreview() {
         const startX = RIBBON_CENTER_X - (rowWidth / 2); 
         const baseLeft = startX + (col * ribbonWidth);
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
-        const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset; 
+        
+        // Added + 1 to nudge it down exactly 1 pixel so it sits flush
+        const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset + 1; 
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
         img.style.top = `${baseTop + ribbonsOffsetY}px`; 
@@ -482,7 +484,6 @@ function renderPreview() {
         const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
         
         let centerX = MEDAL_CENTER_X;
-        // Removed the -2 pixel offset specific to LEFT_POCKET_CENTER_X
         
         let startX = centerX - (rowWidth / 2);
         let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
