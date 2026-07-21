@@ -337,6 +337,46 @@ function getGridLayout(index, totalItems, maxColumns) {
     return { row, col, itemsInThisRow, totalRows };
 }
 
+// Medal specific grid layout helpers
+function getMedalRowCounts(total) {
+    if (total === 0) return [];
+    const maxPerRow = 6;
+    const numRows = Math.ceil(total / maxPerRow);
+    const baseCount = Math.floor(total / numRows);
+    const remainder = total % numRows;
+    
+    let rowCounts = [];
+    for (let i = 0; i < numRows; i++) {
+        // Distribute the remainder to the bottom rows
+        if (i >= numRows - remainder) {
+            rowCounts.push(baseCount + 1);
+        } else {
+            rowCounts.push(baseCount);
+        }
+    }
+    return rowCounts;
+}
+
+function getMedalLayout(index, total) {
+    const rowCounts = getMedalRowCounts(total);
+    let currentIndex = 0;
+    let row = 0;
+    
+    for (let i = 0; i < rowCounts.length; i++) {
+        if (index < currentIndex + rowCounts[i]) {
+            row = i;
+            break;
+        }
+        currentIndex += rowCounts[i];
+    }
+    
+    const col = index - currentIndex;
+    const itemsInThisRow = rowCounts[row];
+    const totalRows = rowCounts.length;
+    
+    return { row, col, itemsInThisRow, totalRows };
+}
+
 function renderPreview() {
     const ribbonsContainer = document.getElementById('ribbons-container');
     const citationsContainer = document.getElementById('citations-container');
@@ -438,7 +478,7 @@ function renderPreview() {
         img.src = medal.activeImage;
         img.className = 'rack-item medal-item';
         
-        const { row, col, itemsInThisRow } = getGridLayout(index, medals.length, 6);
+        const { row, col, itemsInThisRow, totalRows } = getMedalLayout(index, medals.length);
         const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
         
         let centerX = MEDAL_CENTER_X;
@@ -450,7 +490,9 @@ function renderPreview() {
         img.style.left = `${slotCenterX}px`;
         img.style.transform = `translateX(-50%)`;
         
-        const baseTop = MEDAL_LINE_Y + (row * medalSpacing) + medalsOffsetY;
+        // Calculate upwards build: bottom row sits at MEDAL_LINE_Y, higher rows subtract the Y offset
+        const yOffset = (totalRows - 1 - row) * medalSpacing;
+        const baseTop = MEDAL_LINE_Y - yOffset + medalsOffsetY;
         img.style.top = `${baseTop}px`;
         
         applySmartPadding(img, baseTop);
