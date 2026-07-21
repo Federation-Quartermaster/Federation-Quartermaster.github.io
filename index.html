@@ -8,11 +8,37 @@
 </head>
 <body>
 
+    <!-- EXPLICIT AUTHENTICATION GATEWAY (For Roblox Reviewer & Users) -->
+    <div id="login-overlay">
+        <div class="auth-container">
+            <h2>Welcome to IRF Builder</h2>
+            
+            <!-- Idiot-Proof Context for the Reviewer -->
+            <div class="reviewer-note-box">
+                <strong>Roblox Review Team:</strong>
+                <p>
+                    Log in with your Roblox account to dynamically render and view your military medal racks, ribbons, and government citations.
+                </p>
+            </div>
+
+            <!-- The Main Call to Action -->
+            <button id="roblox-login-btn" class="connect-roblox-btn">
+                Connect to Roblox
+            </button>
+
+            <!-- Explicit Policy Links -->
+            <div class="policy-links">
+                <a href="https://federation-quartermaster.github.io/privacy.html" target="_blank">Privacy Policy</a> | 
+                <a href="https://federation-quartermaster.github.io/terms.html" target="_blank">Terms of Service</a>
+            </div>
+        </div>
+    </div>
+
     <!-- TOP TOOLBAR -->
     <header class="top-toolbar">
         <div class="logo">IRF BUILDER</div>
         <div class="global-controls">
-            <button class="tool-btn" id="roblox-login-btn">Login With Roblox</button>
+            <!-- Login button moved to the overlay, disconnect button spawns here via main.js -->
             <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medals</button>
             <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbons</button>
             <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
@@ -94,12 +120,11 @@
             
             <a id="dashboard-link" href="#" target="_blank" style="display: inline-block; background: #00a8ff; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-bottom: 10px; width: 80%; box-sizing: border-box;">Configure in Creator Dashboard</a>
             
-            <!-- NEW DISCORD LINK -->
             <a href="https://discord.com/channels/1507771629218824202/1527937241459069068" 
                target="_blank" 
                onclick="copyAssetIdToClipboard()"
                style="display: block; margin-bottom: 15px; color: #7289da; font-weight: bold; text-decoration: underline;">
-               🔗 Copy Asset ID and post in Discord
+                🔗 Copy Asset ID and post in Discord
             </a>
             
             <button onclick="closeSuccessModal()" style="background: #444; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 80%;">Close & Return</button>
