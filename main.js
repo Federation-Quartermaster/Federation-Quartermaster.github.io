@@ -28,7 +28,7 @@ function copyAssetIdToClipboard() {
 let scale = 4;
 
 const CLIENT_ID = "7051205101808612404";
-const REDIRECT_URI = "https://federation-quartermaster.github.io/redirect"; 
+const REDIRECT_URI = "https://federation-quartermaster.github.io/redirect/"; 
 
 // --- DATA FETCH & UNIFICATION ---
 document.addEventListener("DOMContentLoaded", () => {
