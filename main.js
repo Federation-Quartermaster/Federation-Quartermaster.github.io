@@ -1,7 +1,7 @@
 // --- GLOBALS ---
 let allAwardsData = [];
 let selectedRack = [];
-let lastSubmissionData = ""; // Added to track submission format
+let lastSubmissionData = ""; 
 
 // Drag & Lock States
 let isMedalsLocked = false;
@@ -42,7 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(data => {
             allAwardsData = unifyAwardsData(data);
-            buildExplorer(); // Triggers the new bottom bar
+            buildExplorer(); 
+            initExplorerScrolling(); // Initializes drag & scroll
         })
         .catch(err => console.error("Failed to load awards:", err));
 });
@@ -96,6 +97,54 @@ function unifyAwardsData(data) {
     return Object.values(unified);
 }
 
+// --- EXPLORER SCROLL & DRAG SYSTEM ---
+function initExplorerScrolling() {
+    const container = document.getElementById('bottom-explorer');
+    
+    // PC Scroll Wheel translation
+    container.addEventListener('wheel', (evt) => {
+        evt.preventDefault();
+        container.scrollLeft += evt.deltaY;
+    });
+
+    // Mouse Dragging Translation
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    let isDragging = false;
+
+    container.addEventListener('mousedown', (e) => {
+        if (e.target.tagName.toLowerCase() === 'select') return;
+        
+        isDown = true;
+        isDragging = false;
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+    });
+    
+    container.addEventListener('mouseleave', () => { isDown = false; });
+    
+    container.addEventListener('mouseup', (e) => { isDown = false; });
+    
+    container.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        isDragging = true;
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 2; // scroll-fast multiplier
+        container.scrollLeft = scrollLeft - walk;
+    });
+
+    // Prevent random clicks triggering when releasing a drag
+    container.addEventListener('click', (e) => {
+        if (isDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+}
+
+
 // --- DYNAMIC BOTTOM BAR NAVIGATION ---
 function buildExplorer() {
     renderBottomBar();
@@ -110,7 +159,7 @@ function renderBottomBar() {
     if (navPath.length > 0) {
         const backBtn = document.createElement('button');
         backBtn.className = 'back-btn';
-        backBtn.innerHTML = '&#9664; Back';
+        backBtn.innerHTML = '&#9664;'; // Simplified back arrow
         backBtn.onclick = () => { 
             navPath.pop(); 
             renderBottomBar(); 
@@ -126,7 +175,7 @@ function renderBottomBar() {
             btn.className = 'nav-btn';
             btn.textContent = category;
             btn.onclick = () => { 
-                navPath.push(category.slice(0, -1)); // Trim 's' to match singular internal logic
+                navPath.push(category.slice(0, -1)); 
                 renderBottomBar(); 
             };
             container.appendChild(btn);
@@ -142,7 +191,6 @@ function renderBottomBar() {
     if (navPath[2]) currentItems = currentItems.filter(a => a.folder === navPath[2]);
     if (navPath[3]) currentItems = currentItems.filter(a => a.subFolder === navPath[3]);
 
-    // Determine the next logical grouping property
     let nextProp = '';
     if (navPath.length === 1) nextProp = 'branch';
     else if (navPath.length === 2) nextProp = 'folder';
@@ -662,13 +710,11 @@ async function initializeAuth() {
     const activeToken = await getValidAccessToken();
     
     if (activeToken) {
-        // 1. Hide the full-screen login gateway because the user is authorized
         const overlay = document.getElementById('login-overlay');
         if (overlay) {
             overlay.style.display = 'none';
         }
 
-        // 2. Spawn a Disconnect button in the top toolbar so they can still log out
         const globalControls = document.querySelector('.global-controls');
         if (globalControls && !document.getElementById('disconnect-btn')) {
             const disconnectBtn = document.createElement('button');
@@ -683,11 +729,9 @@ async function initializeAuth() {
                     window.location.reload();
                 }
             };
-            // Prepend puts it at the far left of the toolbar controls
             globalControls.prepend(disconnectBtn); 
         }
     } else {
-        // User is not logged in: Button triggers the OAuth flow
         if (btn) {
             btn.textContent = "Connect to Roblox";
             btn.onclick = initiateRobloxLogin;
@@ -825,7 +869,6 @@ async function executeRobloxUpload() {
                 if (finalAssetId) {
                     console.log("Successfully created Asset ID:", finalAssetId);
                     
-                    // Set global variable for clipboard
                     lastSubmissionData = `${userInfo.sub}, ${finalAssetId}`;
                     
                     document.getElementById('final-asset-id').textContent = finalAssetId;
