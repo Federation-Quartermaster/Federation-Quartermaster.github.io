@@ -403,10 +403,10 @@
             "subFolder": "",
             "name": "10. Operation Crimson Dawn Medal",
             "precedence": 10,
-            "medalImage": null,
+            "medalImage": "MedalDatabase/Assets/Citations/Military/Military Campaigns/10. Operation Crimson Dawn Medal.png",
             "ribbonImage": null,
             "badgeImage": null,
-            "citationImage": "MedalDatabase/Assets/Citations/Military/Military Campaigns/10. Operation Crimson Dawn Medal.png"
+            "citationImage": null
         },
         {
             "id": "mil_mc_10",
