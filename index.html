@@ -11,13 +11,13 @@
     <!-- EXPLICIT AUTHENTICATION GATEWAY (For Roblox Reviewer & Users) -->
     <div id="login-overlay">
         <div class="auth-container">
-            <h2>Welcome to IRF Builder</h2>
+            <h2>Federation's Quartermaster | Award Rack Builder</h2>
             
             <!-- Idiot-Proof Context for the Reviewer -->
             <div class="reviewer-note-box">
-                <strong>Roblox Review Team:</strong>
+                <strong>Notice</strong>
                 <p>
-                    This Website is completely Front-End, nothing is Stored where others can gain access, Authentication Tokens are Stored In your Browsers Local Storage<br>This Website is intended to be able to be used with or Without Roblox, as you can export your Medals as a png, or upload them directly onto your roblox account<br>For the purposes of making this extremely straightforward for review, this prompt has been made the primary modal upon loading into the website when not logged in.
+                    First time Users are Advised to read Privacy Policy & Terms of Service If choosing to connect their Roblox account
                 </p>
             </div>
 
@@ -36,11 +36,11 @@
 
     <!-- TOP TOOLBAR -->
     <header class="top-toolbar">
-        <div class="logo">IRF BUILDER</div>
+        <div class="logo">Award Rack Builder</div>
         <div class="global-controls">
             <!-- Login button moved to the overlay, disconnect button spawns here via main.js -->
-            <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medals</button>
-            <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbons</button>
+            <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medal Rack Position</button>
+            <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbon Rack Positions</button>
             <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
                 <option value="lrtorso_forwebsite.png">Standard Uniform</option>
                 <option value="custom">Upload Custom...</option>
