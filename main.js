@@ -9,6 +9,9 @@ let isRibbonsLocked = false;
 let medalsOffsetX = 0, medalsOffsetY = 0;
 let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 
+// Dynamic Bottom Bar Tracking
+let navPath = []; 
+
 // --- MODAL HELPERS ---
 function closeSuccessModal() {
     document.getElementById('success-modal').style.display = 'none';
@@ -39,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(data => {
             allAwardsData = unifyAwardsData(data);
-            buildExplorer();
+            buildExplorer(); // Triggers the new bottom bar
         })
         .catch(err => console.error("Failed to load awards:", err));
 });
@@ -93,154 +96,173 @@ function unifyAwardsData(data) {
     return Object.values(unified);
 }
 
-// --- EXPLORER UI BUILDER ---
+// --- DYNAMIC BOTTOM BAR NAVIGATION ---
 function buildExplorer() {
-    const container = document.getElementById('frames-container');
+    renderBottomBar();
+    setupCanvasDropZone();
+}
+
+function renderBottomBar() {
+    const container = document.getElementById('bottom-explorer');
     container.innerHTML = ''; 
-    
-    const tree = {};
-    allAwardsData.forEach(award => {
-        if (!tree[award.branch]) tree[award.branch] = {};
-        if (!tree[award.branch][award.folder]) tree[award.branch][award.folder] = {};
-        if (!tree[award.branch][award.folder][award.subFolder]) tree[award.branch][award.folder][award.subFolder] = [];
-        
-        tree[award.branch][award.folder][award.subFolder].push(award);
-    });
 
-    function createNodes(levelObj, parentEl) {
-        for (const key in levelObj) {
-            if (Array.isArray(levelObj[key])) {
-                levelObj[key].sort((a, b) => a.precedence - b.precedence).forEach(award => {
-                    parentEl.appendChild(createAwardRow(award));
-                });
-            } else {
-                if (key === "") {
-                    createNodes(levelObj[key], parentEl);
-                } else {
-                    const details = document.createElement('details');
-                    const summary = document.createElement('summary');
-                    summary.textContent = key;
-                    details.appendChild(summary);
-                    
-                    const innerContainer = document.createElement('div');
-                    innerContainer.className = 'nested-folder'; 
-                    createNodes(levelObj[key], innerContainer);
-                    
-                    details.appendChild(innerContainer);
-                    parentEl.appendChild(details);
-                }
-            }
-        }
-    }
-    
-    createNodes(tree, container);
-}
-
-function createAwardRow(award) {
-    const row = document.createElement('div');
-    row.className = 'award-row';
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'activate-btn';
-    checkbox.id = `chk_${award.id}`;
-    
-    const nameLabel = document.createElement('div');
-    nameLabel.className = 'award-name';
-    nameLabel.textContent = award.name.replace(/^\d+\.\s*/, ''); 
-    nameLabel.title = award.name;
-    
-    row.appendChild(checkbox);
-    row.appendChild(nameLabel);
-
-    const tierKeys = Object.keys(award.tiers);
-    let selectedTier = tierKeys[0]; 
-    let activeType = Array.from(award.availableTypes)[0]; 
-
-    const updateRackIfActive = () => {
-        if (checkbox.checked) {
-            selectedRack = selectedRack.filter(a => a.id !== award.id);
-            selectedRack.push({
-                id: award.id,
-                name: award.name,
-                type: activeType,
-                isCitation: activeType === 'Citation',
-                activeImage: award.tiers[selectedTier][activeType],
-                precedence: award.precedence,
-                folder: award.folder,       
-                subFolder: award.subFolder, 
-                x: null, y: null
-            });
-            renderPreview();
-        }
-    };
-
-    if (tierKeys.length > 1 || tierKeys[0] !== "Standard") {
-        const tierSelect = document.createElement('select');
-        tierSelect.className = 'tier-select';
-        tierKeys.forEach(tier => {
-            const option = document.createElement('option');
-            option.value = tier;
-            option.textContent = tier;
-            tierSelect.appendChild(option);
-        });
-        tierSelect.onchange = (e) => { 
-            selectedTier = e.target.value; 
-            updateRackIfActive(); 
+    // 1. Render the Back Button "<" if nested
+    if (navPath.length > 0) {
+        const backBtn = document.createElement('button');
+        backBtn.className = 'back-btn';
+        backBtn.innerHTML = '&#9664; Back';
+        backBtn.onclick = () => { 
+            navPath.pop(); 
+            renderBottomBar(); 
         };
-        row.appendChild(tierSelect);
+        container.appendChild(backBtn);
     }
 
-    const typeToggle = document.createElement('div');
-    typeToggle.className = 'type-toggle';
-    const typeConfigs = [
-        { label: 'C', value: 'Citation', title: 'Citation' },
-        { label: 'R', value: 'Ribbon', title: 'Ribbon' },
-        { label: 'M', value: 'Medal', title: 'Medal' },
-        { label: 'B', value: 'Badge', title: 'Badge' }
-    ];
-
-    typeConfigs.forEach(tc => {
-        const btn = document.createElement('button');
-        btn.textContent = tc.label;
-        btn.title = tc.title;
-        
-        if (!award.availableTypes.has(tc.value)) {
-            btn.disabled = true;
-        } else {
-            if (tc.value === activeType) btn.classList.add('active');
-            btn.onclick = () => {
-                typeToggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                activeType = tc.value;
-                updateRackIfActive();
+    // 2. Base Level: Show the 4 Root Categories
+    if (navPath.length === 0) {
+        const rootCategories = ['Badges', 'Medals', 'Ribbons', 'Citations'];
+        rootCategories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.textContent = category;
+            btn.onclick = () => { 
+                navPath.push(category.slice(0, -1)); // Trim 's' to match singular internal logic
+                renderBottomBar(); 
             };
-        }
-        typeToggle.appendChild(btn);
-    });
-    row.appendChild(typeToggle);
+            container.appendChild(btn);
+        });
+        return;
+    }
 
-    checkbox.onchange = (e) => {
-        if (e.target.checked) {
-            selectedRack.push({
-                id: award.id,
-                name: award.name,
-                type: activeType,
-                isCitation: activeType === 'Citation',
-                activeImage: award.tiers[selectedTier][activeType],
-                precedence: award.precedence,
-                folder: award.folder,       
-                subFolder: award.subFolder, 
-                x: null, y: null
-            });
-        } else {
-            selectedRack = selectedRack.filter(a => a.id !== award.id);
-        }
-        renderPreview();
-    };
-    
-    return row;
+    // 3. Nested Levels: Filter items based on current path
+    const targetType = navPath[0];
+    let currentItems = allAwardsData.filter(a => a.availableTypes.has(targetType));
+
+    if (navPath[1]) currentItems = currentItems.filter(a => a.branch === navPath[1]);
+    if (navPath[2]) currentItems = currentItems.filter(a => a.folder === navPath[2]);
+    if (navPath[3]) currentItems = currentItems.filter(a => a.subFolder === navPath[3]);
+
+    // Determine the next logical grouping property
+    let nextProp = '';
+    if (navPath.length === 1) nextProp = 'branch';
+    else if (navPath.length === 2) nextProp = 'folder';
+    else if (navPath.length === 3) nextProp = 'subFolder';
+
+    if (nextProp) {
+        const groups = new Set(currentItems.map(a => a[nextProp]).filter(Boolean));
+        
+        groups.forEach(groupName => {
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.textContent = groupName;
+            btn.onclick = () => { 
+                navPath.push(groupName); 
+                renderBottomBar(); 
+            };
+            container.appendChild(btn);
+        });
+
+        const directItems = currentItems.filter(a => !a[nextProp]);
+        renderAwardCards(directItems, targetType, container);
+    } else {
+        renderAwardCards(currentItems, targetType, container);
+    }
 }
+
+// --- RENDERING AWARD PREVIEWS ---
+function renderAwardCards(awards, activeType, container) {
+    awards.sort((a, b) => a.precedence - b.precedence).forEach(award => {
+        const card = document.createElement('div');
+        card.className = 'award-card';
+        card.draggable = true;
+        
+        const tierKeys = Object.keys(award.tiers);
+        let selectedTier = tierKeys[0];
+
+        const img = document.createElement('img');
+        img.src = award.tiers[selectedTier][activeType];
+        
+        const nameLabel = document.createElement('span');
+        nameLabel.textContent = award.name.replace(/^\d+\.\s*/, ''); 
+
+        card.appendChild(img);
+        card.appendChild(nameLabel);
+
+        // Variant Dropdown
+        if (tierKeys.length > 1 || tierKeys[0] !== "Standard") {
+            const tierSelect = document.createElement('select');
+            tierSelect.className = 'award-variant-select';
+            tierKeys.forEach(tier => {
+                const option = document.createElement('option');
+                option.value = tier;
+                option.textContent = tier;
+                tierSelect.appendChild(option);
+            });
+            
+            tierSelect.onmousedown = (e) => e.stopPropagation(); 
+            tierSelect.onchange = (e) => {
+                selectedTier = e.target.value;
+                img.src = award.tiers[selectedTier][activeType]; 
+            };
+            card.appendChild(tierSelect);
+        }
+
+        card.onclick = () => addAwardToRack(award, activeType, selectedTier);
+        
+        card.ondragstart = (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                id: award.id,
+                type: activeType,
+                tier: selectedTier
+            }));
+        };
+
+        container.appendChild(card);
+    });
+}
+
+function addAwardToRack(award, activeType, selectedTier, dropX = null, dropY = null) {
+    selectedRack = selectedRack.filter(a => a.id !== award.id);
+    
+    selectedRack.push({
+        id: award.id,
+        name: award.name,
+        type: activeType,
+        isCitation: activeType === 'Citation',
+        activeImage: award.tiers[selectedTier][activeType],
+        precedence: award.precedence,
+        folder: award.folder,
+        subFolder: award.subFolder,
+        x: dropX, 
+        y: dropY
+    });
+    
+    renderPreview();
+}
+
+function setupCanvasDropZone() {
+    const canvasArea = document.getElementById('canvas-pan-area');
+    
+    canvasArea.ondragover = (e) => e.preventDefault(); 
+    
+    canvasArea.ondrop = (e) => {
+        e.preventDefault();
+        const data = e.dataTransfer.getData('text/plain');
+        if (!data) return;
+        
+        const payload = JSON.parse(data);
+        const award = allAwardsData.find(a => a.id === payload.id);
+        
+        if (award) {
+            const torsoRect = document.getElementById('preview-canvas').getBoundingClientRect();
+            let dropX = (e.clientX - torsoRect.left) / scale; 
+            let dropY = (e.clientY - torsoRect.top) / scale;
+
+            addAwardToRack(award, payload.type, payload.tier, dropX, dropY);
+        }
+    };
+}
+
 
 // --- UI / LOGIC STATE ---
 function updateTorsoBase() {
@@ -267,20 +289,18 @@ function toggleLock(category) {
         isMedalsLocked = !isMedalsLocked;
         const btn = document.getElementById('lock-medals-btn');
         btn.classList.toggle('tool-locked', isMedalsLocked);
-        btn.innerHTML = isMedalsLocked ? '🔓 Medals Locked' : '🔓 Lock Medals';
+        btn.innerHTML = isMedalsLocked ? '箔 Medals Locked' : '箔 Lock Medals';
     } else {
         isRibbonsLocked = !isRibbonsLocked;
         const btn = document.getElementById('lock-ribbons-btn');
         btn.classList.toggle('tool-locked', isRibbonsLocked);
-        btn.innerHTML = isRibbonsLocked ? '🔓 Ribbons Locked' : '🔓 Lock Ribbons';
+        btn.innerHTML = isRibbonsLocked ? '箔 Ribbons Locked' : '箔 Lock Ribbons';
     }
     renderPreview();
 }
 
 function removeFromRack(id) {
     selectedRack = selectedRack.filter(a => a.id !== id);
-    const checkbox = document.getElementById(`chk_${id}`);
-    if (checkbox) checkbox.checked = false;
     renderPreview();
 }
 
@@ -654,7 +674,7 @@ async function initializeAuth() {
             const disconnectBtn = document.createElement('button');
             disconnectBtn.id = 'disconnect-btn';
             disconnectBtn.className = 'tool-btn';
-            disconnectBtn.style.backgroundColor = '#d9534f'; // Red color to stand out
+            disconnectBtn.style.backgroundColor = '#d9534f'; 
             disconnectBtn.style.borderColor = '#d43f3a';
             disconnectBtn.textContent = 'Disconnect Roblox';
             disconnectBtn.onclick = () => {
