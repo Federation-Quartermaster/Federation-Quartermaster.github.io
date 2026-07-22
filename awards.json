@@ -401,18 +401,6 @@
             "branch": "Military",
             "folder": "Military Campaigns",
             "subFolder": "",
-            "name": "10. Operation Crimson Dawn Medal",
-            "precedence": 10,
-            "medalImage": "MedalDatabase/Assets/Citations/Military/Military Campaigns/10. Operation Crimson Dawn Medal.png",
-            "ribbonImage": null,
-            "badgeImage": null,
-            "citationImage": null
-        },
-        {
-            "id": "mil_mc_10",
-            "branch": "Military",
-            "folder": "Military Campaigns",
-            "subFolder": "",
             "name": "10. Operation Crimson Dawn",
             "precedence": 10,
             "medalImage": null,
