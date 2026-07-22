@@ -54,7 +54,7 @@ body {
 /* --- WORKSPACE CORE --- */
 .workspace {
     display: flex;
-    flex-direction: column; /* Stack vertically */
+    flex-direction: column; 
     flex-grow: 1;
     overflow: hidden;
 }
@@ -72,10 +72,22 @@ body {
     overflow-y: hidden;
     white-space: nowrap;
     z-index: 200;
+    /* Hide scrollbar for a cleaner drag/wheel look */
+    scrollbar-width: none; 
+}
+.bottom-explorer::-webkit-scrollbar {
+    display: none; 
+}
+
+/* Clever trick to safely center flex items without clipping when overflowing */
+.bottom-explorer::before,
+.bottom-explorer::after {
+    content: '';
+    margin: auto;
 }
 
 /* Base styling for Navigation Folders and the Back Button */
-.nav-btn, .back-btn {
+.nav-btn {
     background: #2a2a2a;
     color: #fff;
     border: 2px solid #444;
@@ -88,8 +100,23 @@ body {
     transition: all 0.2s;
 }
 
+.back-btn {
+    background: #d9534f;
+    color: #fff;
+    border: 2px solid #d43f3a;
+    border-radius: 8px;
+    font-size: 26px; /* Large arrow */
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .nav-btn:hover { background: #00a8ff; border-color: #008cd6; }
-.back-btn { background: #d9534f; border-color: #d43f3a; }
 .back-btn:hover { background: #c9302c; }
 
 /* --- AWARD CARD (Button + Image Preview + Dropdown) --- */
@@ -101,9 +128,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    min-width: 120px;
-    height: 130px;
+    justify-content: flex-start; /* Removed huge space-between gap */
+    gap: 6px;
+    min-width: 130px;
+    height: 140px; 
     cursor: pointer;
     flex-shrink: 0;
     transition: 0.2s;
@@ -112,10 +140,12 @@ body {
 .award-card:hover { border-color: #00a8ff; background: #2a2a2a; }
 
 .award-card img {
-    max-width: 80px;
-    max-height: 50px;
+    max-width: 100px; 
+    max-height: 65px; 
     image-rendering: pixelated;
     pointer-events: none;
+    margin-bottom: auto; /* Forces image up, text/dropdown down */
+    margin-top: 5px;
 }
 
 .award-card span {
@@ -128,6 +158,8 @@ body {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     pointer-events: none;
+    width: 100%;
+    line-height: 1.2;
 }
 
 .award-variant-select {
@@ -136,9 +168,9 @@ body {
     color: #fff;
     border: 1px solid #555;
     border-radius: 4px;
-    padding: 2px 5px;
-    font-size: 10px;
-    margin-top: 5px;
+    padding: 3px 5px;
+    font-size: 11px;
+    margin-top: auto; 
 }
 
 /* --- CENTER CANVAS AREA --- */
