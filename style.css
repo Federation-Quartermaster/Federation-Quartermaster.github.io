@@ -54,54 +54,92 @@ body {
 /* --- WORKSPACE CORE --- */
 .workspace {
     display: flex;
+    flex-direction: column; /* Stack vertically */
     flex-grow: 1;
     overflow: hidden;
 }
 
-/* --- SIDEBAR FILE EXPLORER --- */
-.sidebar {
-    width: 400px;
+/* --- NEW BOTTOM EXPLORER --- */
+.bottom-explorer {
+    height: 180px;
     background-color: #1a1a1a;
-    border-right: 1px solid #333;
+    border-top: 2px solid #333;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 15px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    z-index: 200;
+}
+
+/* Base styling for Navigation Folders and the Back Button */
+.nav-btn, .back-btn {
+    background: #2a2a2a;
+    color: #fff;
+    border: 2px solid #444;
+    border-radius: 8px;
+    padding: 20px 30px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover { background: #00a8ff; border-color: #008cd6; }
+.back-btn { background: #d9534f; border-color: #d43f3a; }
+.back-btn:hover { background: #c9302c; }
+
+/* --- AWARD CARD (Button + Image Preview + Dropdown) --- */
+.award-card {
+    background: #222;
+    border: 2px solid #444;
+    border-radius: 8px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 120px;
+    height: 130px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: 0.2s;
 }
 
-.sidebar-header {
-    padding: 15px 20px;
-    background-color: #111;
-    border-bottom: 1px solid #333;
+.award-card:hover { border-color: #00a8ff; background: #2a2a2a; }
+
+.award-card img {
+    max-width: 80px;
+    max-height: 50px;
+    image-rendering: pixelated;
+    pointer-events: none;
 }
 
-.sidebar-header h2 { margin: 0; font-size: 12px; color: #666; }
-
-.explorer-tree { padding: 15px 10px; font-size: 14px; }
-details { margin-bottom: 5px; }
-summary {
-    cursor: pointer; padding: 5px; border-radius: 4px;
-    user-select: none; transition: background 0.2s;
+.award-card span {
+    font-size: 11px;
+    color: #ccc;
+    text-align: center;
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    pointer-events: none;
 }
-summary:hover { background-color: #2a2a2a; }
-.nested-folder { margin-left: 20px; border-left: 1px solid #333; padding-left: 5px; margin-top: 5px; }
 
-/* --- AWARD CONTROL ROW --- */
-.award-row {
-    display: flex; align-items: center; gap: 8px; padding: 6px 5px;
-    margin-bottom: 4px; background-color: #222; border-radius: 4px; border: 1px solid #333;
+.award-variant-select {
+    width: 100%;
+    background: #111;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 10px;
+    margin-top: 5px;
 }
-.award-row:hover { border-color: #444; }
-.activate-btn { cursor: pointer; width: 14px; height: 14px; }
-.award-name { flex-grow: 1; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.type-toggle { display: flex; border: 1px solid #444; border-radius: 4px; overflow: hidden; }
-.type-toggle button { background: #2a2a2a; color: #888; border: none; padding: 2px 6px; font-size: 10px; cursor: pointer; }
-.type-toggle button.active { background: #00a8ff; color: #fff; font-weight: bold; }
-.type-toggle button:disabled { background: #1a1a1a; cursor: not-allowed; }
-
-.tier-select { background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 11px; width: 70px; }
-.unlock-icon { background: none; border: none; cursor: pointer; font-size: 12px; filter: grayscale(100%); transition: 0.2s; }
-.unlock-icon:hover { filter: grayscale(0%); }
 
 /* --- CENTER CANVAS AREA --- */
 .canvas-area {
