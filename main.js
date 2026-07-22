@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(data => {
             allAwardsData = unifyAwardsData(data);
             buildExplorer(); 
-            initExplorerScrolling(); // Initializes drag & scroll
+            initExplorerScrolling(); 
         })
         .catch(err => console.error("Failed to load awards:", err));
 });
@@ -62,8 +62,10 @@ function unifyAwardsData(data) {
             if (tierKeywords.includes(sf)) { tierName = sf; sf = ""; }
             if (tierKeywords.includes(f)) { tierName = f; f = ""; }
 
-            if (f.includes(item.name) || item.name.includes(f)) f = "";
-            if (sf.includes(item.name) || item.name.includes(sf)) sf = "";
+            // BUG FIX: Changed from .includes() to strict equality (===)
+            // This stops it from ripping "Silver Shield of the Royal Guard" out of the "Royal Guard" folder.
+            if (f === item.name) f = "";
+            if (sf === item.name) sf = "";
 
             const baseId = `${item.branch}_${f}_${sf}_${item.name}`;
             
@@ -131,11 +133,10 @@ function initExplorerScrolling() {
         e.preventDefault();
         isDragging = true;
         const x = e.pageX - container.offsetLeft;
-        const walk = (x - startX) * 2; // scroll-fast multiplier
+        const walk = (x - startX) * 2; 
         container.scrollLeft = scrollLeft - walk;
     });
 
-    // Prevent random clicks triggering when releasing a drag
     container.addEventListener('click', (e) => {
         if (isDragging) {
             e.preventDefault();
@@ -159,7 +160,7 @@ function renderBottomBar() {
     if (navPath.length > 0) {
         const backBtn = document.createElement('button');
         backBtn.className = 'back-btn';
-        backBtn.innerHTML = '&#9664;'; // Simplified back arrow
+        backBtn.innerHTML = '&#9664;';
         backBtn.onclick = () => { 
             navPath.pop(); 
             renderBottomBar(); 
@@ -337,12 +338,12 @@ function toggleLock(category) {
         isMedalsLocked = !isMedalsLocked;
         const btn = document.getElementById('lock-medals-btn');
         btn.classList.toggle('tool-locked', isMedalsLocked);
-        btn.innerHTML = isMedalsLocked ? '箔 Medals Locked' : '箔 Lock Medals';
+        btn.innerHTML = isMedalsLocked ? '🔓 Medals Locked' : '🔓 Lock Medals';
     } else {
         isRibbonsLocked = !isRibbonsLocked;
         const btn = document.getElementById('lock-ribbons-btn');
         btn.classList.toggle('tool-locked', isRibbonsLocked);
-        btn.innerHTML = isRibbonsLocked ? '箔 Ribbons Locked' : '箔 Lock Ribbons';
+        btn.innerHTML = isRibbonsLocked ? '🔓 Ribbons Locked' : '🔓 Lock Ribbons';
     }
     renderPreview();
 }
@@ -501,7 +502,6 @@ function renderPreview() {
         const baseLeft = startX + (col * ribbonWidth);
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
         
-        // Added + 1 to nudge it down exactly 1 pixel so it sits flush
         const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset + 1; 
         
         img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
@@ -559,7 +559,6 @@ function renderPreview() {
         img.style.left = `${slotCenterX}px`;
         img.style.transform = `translateX(-50%)`;
         
-        // Calculate upwards build: bottom row sits at MEDAL_LINE_Y, higher rows subtract the Y offset
         const yOffset = (totalRows - 1 - row) * medalSpacing;
         const baseTop = MEDAL_LINE_Y - yOffset + medalsOffsetY;
         img.style.top = `${baseTop}px`;
