@@ -142,40 +142,39 @@
     </div>
 
     <!-- Upload Success & Action Modal -->
-    <div id="success-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 3000; justify-content: center; align-items: center;">
-        <div style="background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 500px; text-align: center; color: #f0f0f0; border: 1px solid #00a8ff; font-family: sans-serif; box-shadow: 0 4px 15px rgba(0, 168, 255, 0.2); max-height: 90vh; overflow-y: auto;">
-            <h2 style="color: #00a8ff; margin-top: 0;">Upload Successful!</h2>
-            <p>Your uniform decal is now in your Roblox inventory.</p>
-            <p style="font-size: 1.1em; background: #121212; padding: 10px; border-radius: 4px;"><strong>Asset ID:</strong> <span id="final-asset-id" style="color: #00ffcc; user-select: text;"></span></p>
+<div id="success-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 3000; justify-content: center; align-items: center;">
+    <div style="background: #1e1e1e; padding: 25px; border-radius: 8px; max-width: 500px; text-align: center; color: #f0f0f0; border: 1px solid #00a8ff; font-family: sans-serif; box-shadow: 0 4px 15px rgba(0, 168, 255, 0.2); max-height: 90vh; overflow-y: auto;">
+        <h2 style="color: #00a8ff; margin-top: 0;">Upload Successful!</h2>
+        <p>Your uniform decal is now in your Roblox inventory.</p>
+        <p style="font-size: 1.1em; background: #121212; padding: 10px; border-radius: 4px;"><strong>Asset ID:</strong> <span id="final-asset-id" style="color: #00ffcc; user-select: text;"></span></p>
+        
+        <div style="background: rgba(255, 75, 75, 0.1); border-left: 4px solid #ff4b4b; padding: 12px; margin: 20px 0; text-align: left; font-size: 0.9em;">
+            <strong style="color: #ff4b4b;">⚠️ Action Required for In-Game Use</strong><br><br>
+            Roblox defaults new assets to Private. For this uniform to render inside your game, you <b>must</b> change its privacy settings:
+            <ol style="margin-bottom: 15px; padding-left: 20px;">
+                <li>Click the button below to open your Dashboard.</li>
+                <li>Find the <strong>Privacy</strong> section.</li>
+                <li>Ensure it is set to <strong>Open Use</strong>.</li>
+                <li>Save Changes.</li>
+            </ol>
             
-            <div style="background: rgba(255, 75, 75, 0.1); border-left: 4px solid #ff4b4b; padding: 12px; margin: 20px 0; text-align: left; font-size: 0.9em;">
-                <strong style="color: #ff4b4b;">⚠️ Action Required for In-Game Use</strong><br><br>
-                Roblox defaults new assets to Private. For this uniform to render inside your game, you <b>must</b> change its privacy settings:
-                <ol style="margin-bottom: 15px; padding-left: 20px;">
-                    <li>Click the button below to open your Dashboard.</li>
-                    <li>Find the <strong>Privacy</strong> section.</li>
-                    <li>Ensure it is set to <strong>Open Use</strong>.</li>
-                    <li>Save Changes.</li>
-                </ol>
-                
-                <div style="background: rgba(255, 204, 0, 0.1); border-left: 3px solid #ffcc00; padding: 10px; margin-top: 10px; font-size: 0.9em;">
-                    <strong>Note:</strong> If you receive a warning that the "Image is not set to Open Use", click the linked Asset ID in that warning box. Set the underlying Image to Open Use first, then return to save the Decal.
-                    <img src="assetpermfallback.png" alt="Dependent Image Permission Warning" style="width: 100%; margin-top: 10px; border-radius: 4px; border: 1px solid #444;">
-                </div>
+            <div style="background: rgba(255, 204, 0, 0.1); border-left: 3px solid #ffcc00; padding: 10px; margin-top: 10px; font-size: 0.9em;">
+                <strong>Note:</strong> If you receive a warning that the "Image is not set to Open Use", click the linked Asset ID in that warning box. Set the underlying Image to Open Use first, then return to save the Decal.
+                <img src="assetpermfallback.png" alt="Dependent Image Permission Warning" style="width: 100%; margin-top: 10px; border-radius: 4px; border: 1px solid #444;">
             </div>
-            
-            <a id="dashboard-link" href="#" target="_blank" style="display: inline-block; background: #00a8ff; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-bottom: 10px; width: 80%; box-sizing: border-box;">Configure in Creator Dashboard</a>
-            
-            <a href="https://discord.com/channels/1507771629218824202/1527937241459069068" 
-               target="_blank" 
-               onclick="copyAssetIdToClipboard()"
-               style="display: block; margin-bottom: 15px; color: #7289da; font-weight: bold; text-decoration: underline;">
-                🔗 Copy Asset ID and post in Discord
-            </a>
-            
-            <button onclick="closeSuccessModal()" style="background: #444; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 80%;">Close & Return</button>
         </div>
+        
+        <a id="dashboard-link" href="#" target="_blank" style="display: inline-block; background: #00a8ff; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-bottom: 10px; width: 80%; box-sizing: border-box;">Configure in Creator Dashboard</a>
+        
+        <a href="javascript:void(0);" 
+           onclick="launchDiscordChannel()" 
+           style="display: block; margin-bottom: 15px; color: #7289da; font-weight: bold; text-decoration: underline; cursor: pointer;">
+            🔗 Copy Asset ID and post in Discord
+        </a>
+        
+        <button onclick="closeSuccessModal()" style="background: #444; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 80%;">Close & Return</button>
     </div>
+</div>
 
     <script src="main.js"></script>
 </body>
