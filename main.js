@@ -230,8 +230,10 @@ function renderBottomBar() {
 }
 
 // --- ISKRA ACCESS BADGE GENERATOR LOGIC (ROBLOX API) ---
+// --- ISKRA ACCESS BADGE GENERATOR LOGIC (CASE-SENSITIVE FIX & CORRECT LAYERING) ---
 async function fetchAndLoadUserHeadshot() {
-    const usernameInput = document.getElementById('roblox-username-input').value.trim();
+    const rawInput = document.getElementById('roblox-username-input').value.trim();
+    const usernameInput = rawInput.toLowerCase(); // Force lowercase to prevent "user not found" errors
     const statusDiv = document.getElementById('headshot-status');
     
     if (!usernameInput) {
@@ -254,7 +256,7 @@ async function fetchAndLoadUserHeadshot() {
 
         if (!userData.data || userData.data.length === 0) {
             statusDiv.style.color = '#d9534f';
-            statusDiv.textContent = "User not found.";
+            statusDiv.textContent = "User not found (ensure exact spelling).";
             return;
         }
 
@@ -295,63 +297,93 @@ async function fetchAndLoadUserHeadshot() {
 }
 
 function updateBadgePreview() {
-    const templateSelect = document.getElementById('badge-template-select').value;
+    const templateSrc = document.getElementById('badge-template-select').value;
+    const overlaySrc = document.getElementById('badge-overlay-select').value;
+    
     const canvas = document.getElementById('badge-preview-canvas');
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (uploadedHeadshotObj) {
-        ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
-    }
-
+    // 1. Draw Department Template FIRST so it acts as the opaque base window
     const templateImg = new Image();
     templateImg.onload = function() {
         ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+
+        // 2. Draw Headshot SECOND, positioned precisely inside the green box slot window
+        if (uploadedHeadshotObj) {
+            ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
+        }
+        
+        // 3. Draw Optional Overlay Bar (Directorate/IA) on top if selected
+        if (overlaySrc) {
+            const overlayImg = new Image();
+            overlayImg.onload = function() {
+                ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+            };
+            overlayImg.src = overlaySrc;
+        }
     };
-    templateImg.src = templateSelect;
+    templateImg.src = templateSrc;
 }
 
 function generateAndAddBadgeToRack() {
-    const templateSelect = document.getElementById('badge-template-select').value;
+    const templateSrc = document.getElementById('badge-template-select').value;
+    const overlaySrc = document.getElementById('badge-overlay-select').value;
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = 64;
     tempCanvas.height = 64;
     const ctx = tempCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    if (uploadedHeadshotObj) {
-        ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
-    }
-
     const templateImg = new Image();
     templateImg.crossOrigin = "Anonymous";
     templateImg.onload = function() {
+        // Base Department Template
         ctx.drawImage(templateImg, 0, 0, 64, 64);
+
+        // Headshot inside the green box window coordinates
+        if (uploadedHeadshotObj) {
+            ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
+        }
         
-        const finalDataUrl = tempCanvas.toDataURL("image/png");
-        const customBadgeId = `iskra_custom_badge_${Date.now()}`;
-
-        selectedRack.push({
-            id: customBadgeId,
-            name: "ISKRA Access Badge",
-            type: 'Badge',
-            isCitation: false,
-            activeImage: finalDataUrl,
-            precedence: 999,
-            folder: "ISKRA Access Badges",
-            subFolder: "",
-            x: 56, 
-            y: 40
-        });
-
-        renderPreview();
-        closeBadgeModal();
+        if (overlaySrc) {
+            const overlayImg = new Image();
+            overlayImg.crossOrigin = "Anonymous";
+            overlayImg.onload = function() {
+                ctx.drawImage(overlayImg, 0, 0, 64, 64);
+                finalizeAndPushBadge(tempCanvas);
+            };
+            overlayImg.src = overlaySrc;
+        } else {
+            finalizeAndPushBadge(tempCanvas);
+        }
     };
-    templateImg.src = templateSelect;
+    templateImg.src = templateSrc;
 }
 
+function finalizeAndPushBadge(tempCanvas) {
+    const finalDataUrl = tempCanvas.toDataURL("image/png");
+    const customBadgeId = `iskra_custom_badge_${Date.now()}`;
+
+    selectedRack.push({
+        id: customBadgeId,
+        name: "ISKRA Access Badge",
+        type: 'Badge',
+        isCitation: false,
+        activeImage: finalDataUrl,
+        precedence: 999,
+        folder: "ISKRA Access Badges",
+        subFolder: "",
+        x: 56, 
+        y: 40
+    });
+
+    renderPreview();
+    closeBadgeModal();
+}
 // --- RENDERING AWARD PREVIEWS ---
 function renderAwardCards(awards, activeType, container) {
     awards.sort((a, b) => a.precedence - b.precedence).forEach(award => {
