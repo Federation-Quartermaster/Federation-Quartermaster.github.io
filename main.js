@@ -62,8 +62,6 @@ function unifyAwardsData(data) {
             if (tierKeywords.includes(sf)) { tierName = sf; sf = ""; }
             if (tierKeywords.includes(f)) { tierName = f; f = ""; }
 
-            // BUG FIX: Changed from .includes() to strict equality (===)
-            // This stops it from ripping "Silver Shield of the Royal Guard" out of the "Royal Guard" folder.
             if (f === item.name) f = "";
             if (sf === item.name) sf = "";
 
@@ -103,13 +101,11 @@ function unifyAwardsData(data) {
 function initExplorerScrolling() {
     const container = document.getElementById('bottom-explorer');
     
-    // PC Scroll Wheel translation
     container.addEventListener('wheel', (evt) => {
         evt.preventDefault();
         container.scrollLeft += evt.deltaY;
     });
 
-    // Mouse Dragging Translation
     let isDown = false;
     let startX;
     let scrollLeft;
@@ -156,7 +152,6 @@ function renderBottomBar() {
     const container = document.getElementById('bottom-explorer');
     container.innerHTML = ''; 
 
-    // 1. Render the Back Button "<" if nested
     if (navPath.length > 0) {
         const backBtn = document.createElement('button');
         backBtn.className = 'back-btn';
@@ -168,7 +163,6 @@ function renderBottomBar() {
         container.appendChild(backBtn);
     }
 
-    // 2. Base Level: Show the 4 Root Categories
     if (navPath.length === 0) {
         const rootCategories = ['Badges', 'Medals', 'Ribbons', 'Citations'];
         rootCategories.forEach(category => {
@@ -184,7 +178,6 @@ function renderBottomBar() {
         return;
     }
 
-    // 3. Nested Levels: Filter items based on current path
     const targetType = navPath[0];
     let currentItems = allAwardsData.filter(a => a.availableTypes.has(targetType));
 
@@ -237,7 +230,6 @@ function renderAwardCards(awards, activeType, container) {
         card.appendChild(img);
         card.appendChild(nameLabel);
 
-        // Variant Dropdown
         if (tierKeys.length > 1 || tierKeys[0] !== "Standard") {
             const tierSelect = document.createElement('select');
             tierSelect.className = 'award-variant-select';
@@ -327,7 +319,7 @@ function handleTorsoUpload(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('torso-img').src = e.target.result;
-            document.getElementById('torso-select').options[1].text = "Custom Loaded"; 
+            document.getElementById('torso-select'].options[1].text = "Custom Loaded"; 
         }
         reader.readAsDataURL(file);
     }
@@ -406,7 +398,6 @@ function getGridLayout(index, totalItems, maxColumns) {
     return { row, col, itemsInThisRow, totalRows };
 }
 
-// Medal specific grid layout helpers
 function getMedalRowCounts(total) {
     if (total === 0) return [];
     const maxPerRow = 6;
@@ -416,7 +407,6 @@ function getMedalRowCounts(total) {
     
     let rowCounts = [];
     for (let i = 0; i < numRows; i++) {
-        // Distribute the remainder to the bottom rows
         if (i >= numRows - remainder) {
             rowCounts.push(baseCount + 1);
         } else {
@@ -459,7 +449,8 @@ function renderPreview() {
     const medals = selectedRack.filter(a => a.type === 'Medal');
     const badges = selectedRack.filter(a => a.type === 'Badge');
 
-    [standardRibbons, citations, medals].forEach(arr => arr.sort((a, b) => {
+    // Sort Standard Ribbons & Medals 
+    [standardRibbons, medals].forEach(arr => arr.sort((a, b) => {
         const aDepth = (a.folder ? 1 : 0) + (a.subFolder ? 1 : 0);
         const bDepth = (b.folder ? 1 : 0) + (b.subFolder ? 1 : 0);
         
@@ -468,6 +459,21 @@ function renderPreview() {
         if (a.subFolder !== b.subFolder) return (a.subFolder || "").localeCompare(b.subFolder || "");
         return a.precedence - b.precedence;
     }));
+
+    // Sort Citations based strictly on selection order (index in selectedRack), 
+    // keeping individual citations inside the same group sorted by their internal precedence.
+    citations.sort((a, b) => {
+        const indexA = selectedRack.findIndex(item => item.id === a.id);
+        const indexB = selectedRack.findIndex(item => item.id === b.id);
+
+        // If they belong to the exact same selection block/group, sort them by their internal precedence
+        if (a.folder === b.folder) {
+            return a.precedence - b.precedence;
+        }
+
+        // Otherwise, sort them by the order you selected them
+        return indexA - indexB;
+    });
 
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
