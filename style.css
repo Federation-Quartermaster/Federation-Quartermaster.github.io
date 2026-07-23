@@ -59,7 +59,7 @@ body {
     overflow: hidden;
 }
 
-/* --- NEW BOTTOM EXPLORER --- */
+/* --- BOTTOM EXPLORER --- */
 .bottom-explorer {
     height: 180px;
     background-color: #1a1a1a;
@@ -72,21 +72,18 @@ body {
     overflow-y: hidden;
     white-space: nowrap;
     z-index: 200;
-    /* Hide scrollbar for a cleaner drag/wheel look */
     scrollbar-width: none; 
 }
 .bottom-explorer::-webkit-scrollbar {
     display: none; 
 }
 
-/* Clever trick to safely center flex items without clipping when overflowing */
 .bottom-explorer::before,
 .bottom-explorer::after {
     content: '';
     margin: auto;
 }
 
-/* Base styling for Navigation Folders and the Back Button */
 .nav-btn {
     background: #2a2a2a;
     color: #fff;
@@ -105,7 +102,7 @@ body {
     color: #fff;
     border: 2px solid #d43f3a;
     border-radius: 8px;
-    font-size: 26px; /* Large arrow */
+    font-size: 26px; 
     cursor: pointer;
     flex-shrink: 0;
     transition: all 0.2s;
@@ -119,7 +116,7 @@ body {
 .nav-btn:hover { background: #00a8ff; border-color: #008cd6; }
 .back-btn:hover { background: #c9302c; }
 
-/* --- AWARD CARD (Button + Image Preview + Dropdown) --- */
+/* --- AWARD CARD --- */
 .award-card {
     background: #222;
     border: 2px solid #444;
@@ -128,7 +125,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Removed huge space-between gap */
+    justify-content: flex-start;
     gap: 6px;
     min-width: 130px;
     height: 140px; 
@@ -144,7 +141,7 @@ body {
     max-height: 65px; 
     image-rendering: pixelated;
     pointer-events: none;
-    margin-bottom: auto; /* Forces image up, text/dropdown down */
+    margin-bottom: auto;
     margin-top: 5px;
 }
 
@@ -201,7 +198,6 @@ body {
     background-color: #2b2b36;
 }
 
-/* Isolated Grid Containers */
 .award-layer {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none; 
@@ -216,7 +212,7 @@ body {
 .rack-item:hover, .badge-item:hover { outline: 1px solid rgba(255,0,0,0.5); cursor: pointer; }
 .indiv-unlocked { outline: 1px solid #00a8ff !important; cursor: grab !important; }
 
-/* --- EXPORT MODAL --- */
+/* --- EXPORT & ACCESS BADGE MODAL --- */
 .modal-overlay {
     position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%;
@@ -333,7 +329,7 @@ body {
     background-color: #00A2FF;
     color: white;
     font-size: 1.2rem;
-    font-weight: bold;
+    font-weight: blank;
     padding: 15px 30px;
     border: none;
     border-radius: 8px;
