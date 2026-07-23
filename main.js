@@ -308,12 +308,12 @@ function updateBadgePreview() {
 
     const templateImg = new Image();
     templateImg.onload = function() {
-        // 1. Draw headshot strictly 15x15 inside the green box placement bounds first
+        // 1. Draw headshot at x=2, y=7 with size 15x15 inside the exact green box bounds
         if (uploadedHeadshotObj) {
-            ctx.drawImage(uploadedHeadshotObj, 6, 8, 15, 15);
+            ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
         }
 
-        // 2. Draw the full badge template on top so the window frames the headshot cleanly
+        // 2. Draw the full badge template (25x39 native sizing layer) on top
         ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
         
         // 3. Draw optional overlay bar on top if selected
@@ -341,9 +341,9 @@ function generateAndAddBadgeToRack() {
     const templateImg = new Image();
     templateImg.crossOrigin = "Anonymous";
     templateImg.onload = function() {
-        // 1. Headshot drawn at 15x15 inside the green box bounds
+        // 1. Headshot strictly inside the green box slot (x=2, y=7, 15x15)
         if (uploadedHeadshotObj) {
-            ctx.drawImage(uploadedHeadshotObj, 6, 8, 15, 15);
+            ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
         }
 
         // 2. Full badge template on top
