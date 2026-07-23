@@ -376,7 +376,7 @@ function finalizeAndPushBadge(tempCanvas) {
     const finalDataUrl = tempCanvas.toDataURL("image/png");
     const customBadgeId = `iskra_custom_badge_${Date.now()}`;
 
-    selectedRack.push({
+    const badgeObj = {
         id: customBadgeId,
         name: "ISKRA Access Badge",
         type: 'Badge',
@@ -387,7 +387,14 @@ function finalizeAndPushBadge(tempCanvas) {
         subFolder: "",
         x: 56, 
         y: 40
-    });
+    };
+
+    // Save to browser storage
+    let savedBadges = JSON.parse(localStorage.getItem('iskra_saved_access_badges') || '[]');
+    savedBadges.push(badgeObj);
+    localStorage.setItem('iskra_saved_access_badges', JSON.stringify(savedBadges));
+
+    selectedRack.push(badgeObj);
 
     renderPreview();
     closeBadgeModal();
