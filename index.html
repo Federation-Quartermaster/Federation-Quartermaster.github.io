@@ -51,7 +51,7 @@
             <button id="btn-lock-citations" class="tool-btn" onclick="toggleCitationRackLock()">Lock Citation Rack Positions</button>
             <button class="tool-btn" onclick="clearAllAwardRacks()" style="background-color: #d9534f; color: white;">Clear Award Racks</button>
             <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
-                <option value="lrtorso_forwebsite.png">Standard Uniform</option>
+                <option value="previewtorsos/Mil_lr_torso.png">Standard Uniform</option>
                 <option value="custom">Upload Custom...</option>
             </select>
             <input type="file" id="torso-upload" accept="image/png, image/jpeg" style="display:none;" onchange="handleTorsoUpload(event)">
@@ -64,7 +64,7 @@
         <main class="canvas-area" id="canvas-pan-area">
             <div class="workspace-camera" id="camera">
                 <div class="torso-canvas" id="preview-canvas">
-                    <img id="torso-img" src="lrtorso_forwebsite.png" alt="Torso Base" style="width:100%; height:100%; position:absolute; top:0; left:0;">
+                    <img id="torso-img" src="previewtorsos/Mil_lr_torso.png" alt="Torso Base" style="width:100%; height:100%; position:absolute; top:0; left:0;">
                     
                     <div id="ribbons-container" class="award-layer"></div>
                     <div id="citations-container" class="award-layer"></div>
@@ -90,20 +90,20 @@
             
             <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Select Department Base:</label>
             <select id="badge-template-select" class="base-select" style="width: 100%; margin-bottom: 15px;" onchange="updateBadgePreview()">
-                <option value="ISKRA_Agitprop.png">Agitprop</option>
-                <option value="ISKRA_Archives.png">Archives</option>
-                <option value="ISKRA_Correspondents.png">Correspondents</option>
-                <option value="ISKRA_Education.png">Education</option>
-                <option value="ISKRA_HC.png">High Command (HC)</option>
-                <option value="ISKRA_HumanResources.png">Human Resources</option>
-                <option value="ISKRA_Telecommunications.png">Telecommunications</option>
+                <option value="AccessBadge/ISKRA_Agitprop.png">Agitprop</option>
+                <option value="AccessBadge/ISKRA_Archives.png">Archives</option>
+                <option value="AccessBadge/ISKRA_Correspondents.png">Correspondents</option>
+                <option value="AccessBadge/ISKRA_Education.png">Education</option>
+                <option value="AccessBadge/ISKRA_HC.png">High Command (HC)</option>
+                <option value="AccessBadge/ISKRA_HumanResources.png">Human Resources</option>
+                <option value="AccessBadge/ISKRA_Telecommunications.png">Telecommunications</option>
             </select>
 
             <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Optional Overlay Bar:</label>
             <select id="badge-overlay-select" class="base-select" style="width: 100%; margin-bottom: 15px;" onchange="updateBadgePreview()">
                 <option value="">None</option>
-                <option value="ISKRA_Directorate_Bar.png">Directorate Bar</option>
-                <option value="ISKRA_IA_Bar.png">Internal Affairs (IA) Bar</option>
+                <option value="AccessBadge/ISKRA_Directorate_Bar.png">Directorate Bar</option>
+                <option value="AccessBadge/ISKRA_IA_Bar.png">Internal Affairs (IA) Bar</option>
             </select>
 
             <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Roblox Username:</label>
