@@ -301,7 +301,6 @@ function updateBadgePreview() {
     const overlaySrc = document.getElementById('badge-overlay-select').value;
     
     const canvas = document.getElementById('badge-preview-canvas');
-    // Ensure native canvas resolution matches the 25x39 badge dimensions
     canvas.width = 25;
     canvas.height = 39;
     
@@ -310,23 +309,28 @@ function updateBadgePreview() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Draw headshot at the bottom layer, mapped precisely to the green box slot (x=2, y=7, 15x15)
-    if (uploadedHeadshotObj) {
-        ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
-    }
-
-    // 2. Draw the full 25x39 department template on top
+    // 3. Badge base (Bottom layer)
     const templateImg = new Image();
     templateImg.onload = function() {
         ctx.drawImage(templateImg, 0, 0, 25, 39);
         
-        // 3. Draw optional overlay bar on top of the template if selected
+        // 2. IA / Directorate Bars (Middle layer)
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.onload = function() {
                 ctx.drawImage(overlayImg, 0, 0, 25, 39);
+                
+                // 1. Headshot (Frontmost layer, drawn on top at x=2, y=7, 15x15)
+                if (uploadedHeadshotObj) {
+                    ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
+                }
             };
             overlayImg.src = overlaySrc;
+        } else {
+            // If no overlay, draw Headshot (Frontmost layer) directly on top of base
+            if (uploadedHeadshotObj) {
+                ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
+            }
         }
     };
     templateImg.src = templateSrc;
@@ -342,26 +346,31 @@ function generateAndAddBadgeToRack() {
     const ctx = tempCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // 1. Headshot drawn first at the green box window coordinates
-    if (uploadedHeadshotObj) {
-        ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
-    }
-
+    // 3. Badge base (Bottom layer)
     const templateImg = new Image();
     templateImg.crossOrigin = "Anonymous";
     templateImg.onload = function() {
-        // 2. Department template on top
         ctx.drawImage(templateImg, 0, 0, 25, 39);
         
+        // 2. IA / Directorate Bars (Middle layer)
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.crossOrigin = "Anonymous";
             overlayImg.onload = function() {
                 ctx.drawImage(overlayImg, 0, 0, 25, 39);
+                
+                // 1. Headshot (Frontmost layer)
+                if (uploadedHeadshotObj) {
+                    ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
+                }
                 finalizeAndPushBadge(tempCanvas);
             };
             overlayImg.src = overlaySrc;
         } else {
+            // 1. Headshot (Frontmost layer)
+            if (uploadedHeadshotObj) {
+                ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
+            }
             finalizeAndPushBadge(tempCanvas);
         }
     };
