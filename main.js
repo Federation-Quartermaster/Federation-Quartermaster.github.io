@@ -12,9 +12,21 @@ let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
 // Dynamic Bottom Bar Tracking
 let navPath = []; 
 
+// ISKRA Badge Generator State
+let uploadedHeadshotObj = null;
+
 // --- MODAL HELPERS ---
 function closeSuccessModal() {
     document.getElementById('success-modal').style.display = 'none';
+}
+
+function openBadgeModal() {
+    document.getElementById('badge-modal').style.display = 'flex';
+    updateBadgePreview();
+}
+
+function closeBadgeModal() {
+    document.getElementById('badge-modal').style.display = 'none';
 }
 
 function copyAssetIdToClipboard() {
@@ -164,15 +176,21 @@ function renderBottomBar() {
     }
 
     if (navPath.length === 0) {
-        const rootCategories = ['Badges', 'Medals', 'Ribbons', 'Citations'];
+        const rootCategories = ['Badges', 'Medals', 'Ribbons', 'Citations', 'Access Badges'];
         rootCategories.forEach(category => {
             const btn = document.createElement('button');
             btn.className = 'nav-btn';
             btn.textContent = category;
-            btn.onclick = () => { 
-                navPath.push(category.slice(0, -1)); 
-                renderBottomBar(); 
-            };
+            
+            if (category === 'Access Badges') {
+                btn.style.borderColor = '#00a8ff';
+                btn.onclick = () => { openBadgeModal(); };
+            } else {
+                btn.onclick = () => { 
+                    navPath.push(category.slice(0, -1)); 
+                    renderBottomBar(); 
+                };
+            }
             container.appendChild(btn);
         });
         return;
@@ -209,6 +227,130 @@ function renderBottomBar() {
     } else {
         renderAwardCards(currentItems, targetType, container);
     }
+}
+
+// --- ISKRA ACCESS BADGE GENERATOR LOGIC (ROBLOX API) ---
+async function fetchAndLoadUserHeadshot() {
+    const usernameInput = document.getElementById('roblox-username-input').value.trim();
+    const statusDiv = document.getElementById('headshot-status');
+    
+    if (!usernameInput) {
+        statusDiv.style.color = '#d9534f';
+        statusDiv.textContent = "Please enter a Roblox username first.";
+        return;
+    }
+
+    statusDiv.style.color = '#ffcc00';
+    statusDiv.textContent = "Resolving username to User ID...";
+
+    try {
+        // 1. Get User ID from Username via RoProxy
+        const userRes = await fetch("https://users.roproxy.com/v1/usernames/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usernames: [usernameInput], excludeBannedUsers: true })
+        });
+        const userData = await userRes.json();
+
+        if (!userData.data || userData.data.length === 0) {
+            statusDiv.style.color = '#d9534f';
+            statusDiv.textContent = "User not found.";
+            return;
+        }
+
+        const userId = userData.data[0].id;
+        statusDiv.textContent = `Found User ID (${userId}). Fetching headshot...`;
+
+        // 2. Get Avatar Headshot URL via RoProxy Thumbnails API
+        const thumbRes = await fetch(`https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`);
+        const thumbData = await thumbRes.json();
+
+        if (!thumbData.data || thumbData.data.length === 0 || !thumbData.data[0].imageUrl) {
+            statusDiv.style.color = '#d9534f';
+            statusDiv.textContent = "Failed to fetch avatar headshot.";
+            return;
+        }
+
+        const headshotUrl = thumbData.data[0].imageUrl;
+
+        // 3. Load image into canvas memory
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = function() {
+            uploadedHeadshotObj = img;
+            statusDiv.style.color = '#00ffcc';
+            statusDiv.textContent = "Headshot successfully loaded!";
+            updateBadgePreview();
+        };
+        img.onerror = function() {
+            statusDiv.style.color = '#d9534f';
+            statusDiv.textContent = "Failed to load headshot image texture.";
+        };
+        img.src = headshotUrl;
+
+    } catch (err) {
+        console.error(err);
+        statusDiv.style.color = '#d9534f';
+        statusDiv.textContent = "Network error connecting to Roblox APIs.";
+    }
+}
+
+function updateBadgePreview() {
+    const templateSelect = document.getElementById('badge-template-select').value;
+    const canvas = document.getElementById('badge-preview-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (uploadedHeadshotObj) {
+        ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
+    }
+
+    const templateImg = new Image();
+    templateImg.onload = function() {
+        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+    };
+    templateImg.src = templateSelect;
+}
+
+function generateAndAddBadgeToRack() {
+    const templateSelect = document.getElementById('badge-template-select').value;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 64;
+    tempCanvas.height = 64;
+    const ctx = tempCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    if (uploadedHeadshotObj) {
+        ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
+    }
+
+    const templateImg = new Image();
+    templateImg.crossOrigin = "Anonymous";
+    templateImg.onload = function() {
+        ctx.drawImage(templateImg, 0, 0, 64, 64);
+        
+        const finalDataUrl = tempCanvas.toDataURL("image/png");
+        const customBadgeId = `iskra_custom_badge_${Date.now()}`;
+
+        selectedRack.push({
+            id: customBadgeId,
+            name: "ISKRA Access Badge",
+            type: 'Badge',
+            isCitation: false,
+            activeImage: finalDataUrl,
+            precedence: 999,
+            folder: "ISKRA Access Badges",
+            subFolder: "",
+            x: 56, 
+            y: 40
+        });
+
+        renderPreview();
+        closeBadgeModal();
+    };
+    templateImg.src = templateSelect;
 }
 
 // --- RENDERING AWARD PREVIEWS ---
@@ -449,7 +591,6 @@ function renderPreview() {
     const medals = selectedRack.filter(a => a.type === 'Medal');
     const badges = selectedRack.filter(a => a.type === 'Badge');
 
-    // Sort Standard Ribbons & Medals 
     [standardRibbons, medals].forEach(arr => arr.sort((a, b) => {
         const aDepth = (a.folder ? 1 : 0) + (a.subFolder ? 1 : 0);
         const bDepth = (b.folder ? 1 : 0) + (b.subFolder ? 1 : 0);
@@ -460,7 +601,6 @@ function renderPreview() {
         return a.precedence - b.precedence;
     }));
 
-    // Build a chronological mapping of citation groups based on when their FIRST award was added to selectedRack
     let groupFirstAddedIndex = {};
     selectedRack.forEach((item, globalIdx) => {
         if (item.type === 'Citation' && item.folder && !(item.folder in groupFirstAddedIndex)) {
@@ -468,7 +608,6 @@ function renderPreview() {
         }
     });
 
-    // Sort Citations: Groups sort descending by insertion order, items within groups sort by internal precedence
     citations.sort((a, b) => {
         const groupA = a.folder || "";
         const groupB = b.folder || "";
@@ -479,7 +618,6 @@ function renderPreview() {
             return orderA - orderB;
         }
 
-        // Inside the same group, sort by internal precedence
         return a.precedence - b.precedence;
     });
 
