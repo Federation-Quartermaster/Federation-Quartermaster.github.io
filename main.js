@@ -244,8 +244,8 @@ async function fetchAndLoadUserHeadshot() {
     statusDiv.textContent = "Resolving username to User ID...";
 
     try {
-        // 1. Get User ID from Username via RoProxy
-        const userRes = await fetch("https://users.roproxy.com/v1/usernames/users", {
+        const targetUserUrl = encodeURIComponent("https://users.roblox.com/v1/usernames/users");
+        const userRes = await fetch(`https://corsproxy.io/?url=${targetUserUrl}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ usernames: [usernameInput], excludeBannedUsers: true })
@@ -261,8 +261,8 @@ async function fetchAndLoadUserHeadshot() {
         const userId = userData.data[0].id;
         statusDiv.textContent = `Found User ID (${userId}). Fetching headshot...`;
 
-        // 2. Get Avatar Headshot URL via RoProxy Thumbnails API
-        const thumbRes = await fetch(`https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`);
+        const targetThumbUrl = encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`);
+        const thumbRes = await fetch(`https://corsproxy.io/?url=${targetThumbUrl}`);
         const thumbData = await thumbRes.json();
 
         if (!thumbData.data || thumbData.data.length === 0 || !thumbData.data[0].imageUrl) {
@@ -273,7 +273,6 @@ async function fetchAndLoadUserHeadshot() {
 
         const headshotUrl = thumbData.data[0].imageUrl;
 
-        // 3. Load image into canvas memory
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.onload = function() {
