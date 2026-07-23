@@ -319,7 +319,7 @@ function handleTorsoUpload(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('torso-img').src = e.target.result;
-            document.getElementById('torso-select'].options[1].text = "Custom Loaded"; 
+            document.getElementById('torso-select').options[1].text = "Custom Loaded"; 
         }
         reader.readAsDataURL(file);
     }
@@ -460,19 +460,27 @@ function renderPreview() {
         return a.precedence - b.precedence;
     }));
 
-    // Sort Citations based strictly on selection order (index in selectedRack), 
-    // keeping individual citations inside the same group sorted by their internal precedence.
-    citations.sort((a, b) => {
-        const indexA = selectedRack.findIndex(item => item.id === a.id);
-        const indexB = selectedRack.findIndex(item => item.id === b.id);
+    // Build a chronological mapping of citation groups based on when their FIRST award was added to selectedRack
+    let groupFirstAddedIndex = {};
+    selectedRack.forEach((item, globalIdx) => {
+        if (item.type === 'Citation' && item.folder && !(item.folder in groupFirstAddedIndex)) {
+            groupFirstAddedIndex[item.folder] = globalIdx;
+        }
+    });
 
-        // If they belong to the exact same selection block/group, sort them by their internal precedence
-        if (a.folder === b.folder) {
-            return a.precedence - b.precedence;
+    // Sort Citations: Groups sort descending by insertion order, items within groups sort by internal precedence
+    citations.sort((a, b) => {
+        const groupA = a.folder || "";
+        const groupB = b.folder || "";
+
+        if (groupA !== groupB) {
+            const orderA = groupFirstAddedIndex[groupA] !== undefined ? groupFirstAddedIndex[groupA] : 999;
+            const orderB = groupFirstAddedIndex[groupB] !== undefined ? groupFirstAddedIndex[groupB] : 999;
+            return orderA - orderB;
         }
 
-        // Otherwise, sort them by the order you selected them
-        return indexA - indexB;
+        // Inside the same group, sort by internal precedence
+        return a.precedence - b.precedence;
     });
 
     const hasRibbons = standardRibbons.length > 0;
