@@ -187,7 +187,15 @@ function renderBottomBar() {
             
             if (category === 'Access Badges') {
                 btn.style.borderColor = '#00a8ff';
-                btn.onclick = () => { openBadgeModal(); };
+                btn.onclick = () => { 
+                    const savedBadges = JSON.parse(localStorage.getItem('iskra_saved_access_badges') || '[]');
+                    if (savedBadges.length === 0) {
+                        openBadgeModal();
+                    } else {
+                        navPath.push('Access Badges');
+                        renderBottomBar();
+                    }
+                };
             } else {
                 btn.onclick = () => { 
                     navPath.push(category.slice(0, -1)); 
@@ -195,6 +203,45 @@ function renderBottomBar() {
                 };
             }
             container.appendChild(btn);
+        });
+        updateSelectionPageOverlays();
+        return;
+    }
+
+    // Special category view for saved Access Badges
+    if (navPath.length === 1 && navPath[0] === 'Access Badges') {
+        const createBtn = document.createElement('button');
+        createBtn.className = 'nav-btn';
+        createBtn.style.borderColor = '#00a8ff';
+        createBtn.textContent = '+ Create New Badge';
+        createBtn.onclick = () => { openBadgeModal(); };
+        container.appendChild(createBtn);
+
+        const savedBadges = JSON.parse(localStorage.getItem('iskra_saved_access_badges') || '[]');
+        savedBadges.forEach(badge => {
+            const card = document.createElement('div');
+            card.className = 'award-card';
+            card.style.cursor = 'pointer';
+
+            const img = document.createElement('img');
+            img.src = badge.activeImage;
+            
+            const nameLabel = document.createElement('span');
+            nameLabel.textContent = "Saved Badge";
+
+            card.appendChild(img);
+            card.appendChild(nameLabel);
+
+            // Clicking adds a clone of this saved badge onto the uniform rack
+            card.onclick = () => {
+                selectedRack.push({
+                    ...badge,
+                    id: `iskra_custom_badge_${Date.now()}_${Math.random()}`
+                });
+                renderPreview();
+            };
+
+            container.appendChild(card);
         });
         updateSelectionPageOverlays();
         return;
