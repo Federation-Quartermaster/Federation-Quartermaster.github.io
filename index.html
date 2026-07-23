@@ -46,8 +46,10 @@
     <header class="top-toolbar">
         <div class="logo">Award Rack Builder</div>
         <div class="global-controls">
-            <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medal Rack Position</button>
-            <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbon Rack Positions</button>
+            <button id="btn-lock-medals" class="tool-btn" onclick="toggleMedalRackLock()">Lock Medal Rack Positions</button>
+            <button id="btn-lock-ribbons" class="tool-btn" onclick="toggleRibbonRackLock()">Lock Ribbon Rack Positions</button>
+            <button id="btn-lock-citations" class="tool-btn" onclick="toggleCitationRackLock()">Lock Citation Rack Positions</button>
+            <button class="tool-btn" onclick="clearAllAwardRacks()" style="background-color: #d9534f; color: white;">Clear Award Racks</button>
             <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
                 <option value="lrtorso_forwebsite.png">Standard Uniform</option>
                 <option value="custom">Upload Custom...</option>
