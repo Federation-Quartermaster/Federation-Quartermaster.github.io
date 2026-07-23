@@ -13,7 +13,6 @@
         <div class="auth-container">
             <h2>Federation's Quartermaster | Award Rack Builder</h2>
             
-            <!-- Idiot-Proof Context for the Reviewer -->
             <div class="reviewer-note-box">
                 <strong>Notice</strong>
                 <p>
@@ -23,7 +22,6 @@
                 </p>
             </div>
 
-            <!-- The Main Call to Action -->
             <button id="roblox-login-btn" class="connect-roblox-btn">
                 Connect to Roblox
             </button>
@@ -31,7 +29,6 @@
                 Continue Without Connecting Roblox account
             </button>
 
-            <!-- Explicit Policy Links -->
             <div class="policy-links">
                 <a href="https://federation-quartermaster.github.io/privacypolicy.html" target="_blank">Privacy Policy</a> | 
                 <a href="https://federation-quartermaster.github.io/termsofservice.html" target="_blank">Terms of Service</a>
@@ -39,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Bypass Login Script -->
     <script>
         document.getElementById('continue-without-login-btn').addEventListener('click', () => {
             document.getElementById('login-overlay').style.display = 'none';
@@ -50,7 +46,6 @@
     <header class="top-toolbar">
         <div class="logo">Award Rack Builder</div>
         <div class="global-controls">
-            <!-- Login button moved to the overlay, disconnect button spawns here via main.js -->
             <button class="tool-btn" id="lock-medals-btn" onclick="toggleLock('medals')">🔓 Lock Medal Rack Position</button>
             <button class="tool-btn" id="lock-ribbons-btn" onclick="toggleLock('ribbons')">🔓 Lock Ribbon Rack Positions</button>
             <select id="torso-select" class="base-select" onchange="updateTorsoBase()">
@@ -66,11 +61,9 @@
         <!-- CENTER CANVAS: THE INFINITE WORKSPACE -->
         <main class="canvas-area" id="canvas-pan-area">
             <div class="workspace-camera" id="camera">
-                <!-- THE MATHEMATICALLY PURE 128x128 TORSO -->
                 <div class="torso-canvas" id="preview-canvas">
                     <img id="torso-img" src="lrtorso_forwebsite.png" alt="Torso Base" style="width:100%; height:100%; position:absolute; top:0; left:0;">
                     
-                    <!-- ISOLATED GRID CONTAINERS -->
                     <div id="ribbons-container" class="award-layer"></div>
                     <div id="citations-container" class="award-layer"></div>
                     <div id="medals-container" class="award-layer"></div>
@@ -79,9 +72,48 @@
             </div>
         </main>
 
-        <!-- NEW BOTTOM BAR: HORIZONTAL EXPLORER -->
-        <div class="bottom-explorer" id="bottom-explorer">
-            <!-- JS will populate the cascading buttons and cards here -->
+        <!-- BOTTOM EXPLORER -->
+        <div class="bottom-explorer" id="bottom-explorer"></div>
+    </div>
+
+    <!-- ISKRA ACCESS BADGE GENERATOR MODAL -->
+    <div id="badge-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="width: 420px;">
+            <div class="modal-header">
+                <h3>ISKRA Access Badge Creator</h3>
+                <button class="close-btn" onclick="closeBadgeModal()">✖</button>
+            </div>
+            <div class="modal-body" style="text-align: left;">
+                <p style="margin-bottom: 15px;">Configure your ISKRA roleplay identification badge:</p>
+                
+                <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Select Department / Variant:</label>
+                <select id="badge-template-select" class="base-select" style="width: 100%; margin-bottom: 15px;" onchange="updateBadgePreview()">
+                    <option value="ISKRA_Agitprop.png">Agitprop</option>
+                    <option value="ISKRA_Archives.png">Archives</option>
+                    <option value="ISKRA_Correspondents.png">Correspondents</option>
+                    <option value="ISKRA_Directorate_Bar.png">Directorate Bar</option>
+                    <option value="ISKRA_Education.png">Education</option>
+                    <option value="ISKRA_HC.png">High Command (HC)</option>
+                    <option value="ISKRA_HumanResources.png">Human Resources</option>
+                    <option value="ISKRA_IA_Bar.png">Internal Affairs (IA) Bar</option>
+                    <option value="ISKRA_Telecommunications.png">Telecommunications</option>
+                </select>
+
+                <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Roblox Username:</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" id="roblox-username-input" placeholder="Enter username..." class="base-select" style="flex-grow: 1; cursor: text;">
+                    <button class="tool-btn" onclick="fetchAndLoadUserHeadshot()" style="background-color: #00a8ff; font-weight: bold;">Fetch Headshot</button>
+                </div>
+                <div id="headshot-status" style="font-size: 11px; color: #888; margin-bottom: 15px; min-height: 15px;"></div>
+
+                <div style="display: flex; justify-content: center; background: #111; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 20px;">
+                    <canvas id="badge-preview-canvas" width="64" height="64" style="image-rendering: pixelated; width: 128px; height: 128px; border: 1px dashed #444;"></canvas>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="export-btn" onclick="generateAndAddBadgeToRack()">Add Badge to Uniform</button>
+                </div>
+            </div>
         </div>
     </div>
 
