@@ -3,11 +3,14 @@ let allAwardsData = [];
 let selectedRack = [];
 let lastSubmissionData = ""; 
 
-// Drag & Lock States
-let isMedalsLocked = false;
-let isRibbonsLocked = false;
+// Drag & Lock States (Updated for separate racks)
+let isMedalRackLocked = false;
+let isRibbonRackLocked = false;
+let isCitationRackLocked = false;
+
 let medalsOffsetX = 0, medalsOffsetY = 0;
 let ribbonsOffsetX = 0, ribbonsOffsetY = 0;
+let citationsOffsetX = 0, citationsOffsetY = 0;
 
 // Dynamic Bottom Bar Tracking
 let navPath = []; 
@@ -193,6 +196,7 @@ function renderBottomBar() {
             }
             container.appendChild(btn);
         });
+        updateSelectionPageOverlays();
         return;
     }
 
@@ -230,10 +234,9 @@ function renderBottomBar() {
 }
 
 // --- ISKRA ACCESS BADGE GENERATOR LOGIC (ROBLOX API) ---
-// --- ISKRA ACCESS BADGE GENERATOR LOGIC (CASE-SENSITIVE FIX & CORRECT LAYERING) ---
 async function fetchAndLoadUserHeadshot() {
     const rawInput = document.getElementById('roblox-username-input').value.trim();
-    const usernameInput = rawInput.toLowerCase(); // Force lowercase to prevent "user not found" errors
+    const usernameInput = rawInput.toLowerCase(); 
     const statusDiv = document.getElementById('headshot-status');
     
     if (!usernameInput) {
@@ -309,25 +312,21 @@ function updateBadgePreview() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 3. Badge base (Bottom layer)
     const templateImg = new Image();
     templateImg.onload = function() {
         ctx.drawImage(templateImg, 0, 0, 25, 39);
         
-        // 2. IA / Directorate Bars (Middle layer)
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.onload = function() {
                 ctx.drawImage(overlayImg, 0, 0, 25, 39);
                 
-                // 1. Headshot (Frontmost layer, drawn on top at x=2, y=7, 15x15)
                 if (uploadedHeadshotObj) {
                     ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
                 }
             };
             overlayImg.src = overlaySrc;
         } else {
-            // If no overlay, draw Headshot (Frontmost layer) directly on top of base
             if (uploadedHeadshotObj) {
                 ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
             }
@@ -346,20 +345,17 @@ function generateAndAddBadgeToRack() {
     const ctx = tempCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // 3. Badge base (Bottom layer)
     const templateImg = new Image();
     templateImg.crossOrigin = "Anonymous";
     templateImg.onload = function() {
         ctx.drawImage(templateImg, 0, 0, 25, 39);
         
-        // 2. IA / Directorate Bars (Middle layer)
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.crossOrigin = "Anonymous";
             overlayImg.onload = function() {
                 ctx.drawImage(overlayImg, 0, 0, 25, 39);
                 
-                // 1. Headshot (Frontmost layer)
                 if (uploadedHeadshotObj) {
                     ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
                 }
@@ -367,7 +363,6 @@ function generateAndAddBadgeToRack() {
             };
             overlayImg.src = overlaySrc;
         } else {
-            // 1. Headshot (Frontmost layer)
             if (uploadedHeadshotObj) {
                 ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
             }
@@ -397,12 +392,14 @@ function finalizeAndPushBadge(tempCanvas) {
     renderPreview();
     closeBadgeModal();
 }
+
 // --- RENDERING AWARD PREVIEWS ---
 function renderAwardCards(awards, activeType, container) {
     awards.sort((a, b) => a.precedence - b.precedence).forEach(award => {
         const card = document.createElement('div');
         card.className = 'award-card';
         card.draggable = true;
+        card.setAttribute('data-award-id', award.id);
         
         const tierKeys = Object.keys(award.tiers);
         let selectedTier = tierKeys[0];
@@ -434,7 +431,14 @@ function renderAwardCards(awards, activeType, container) {
             card.appendChild(tierSelect);
         }
 
-        card.onclick = () => addAwardToRack(award, activeType, selectedTier);
+        card.onclick = () => {
+            const existingIndex = selectedRack.findIndex(item => item.id === award.id);
+            if (existingIndex !== -1) {
+                removeFromRack(award.id);
+            } else {
+                addAwardToRack(award, activeType, selectedTier);
+            }
+        };
         
         card.ondragstart = (e) => {
             e.dataTransfer.setData('text/plain', JSON.stringify({
@@ -446,6 +450,8 @@ function renderAwardCards(awards, activeType, container) {
 
         container.appendChild(card);
     });
+
+    updateSelectionPageOverlays();
 }
 
 function addAwardToRack(award, activeType, selectedTier, dropX = null, dropY = null) {
@@ -511,24 +517,81 @@ function handleTorsoUpload(event) {
     }
 }
 
-function toggleLock(category) {
-    if (category === 'medals') {
-        isMedalsLocked = !isMedalsLocked;
-        const btn = document.getElementById('lock-medals-btn');
-        btn.classList.toggle('tool-locked', isMedalsLocked);
-        btn.innerHTML = isMedalsLocked ? '🔓 Medals Locked' : '🔓 Lock Medals';
-    } else {
-        isRibbonsLocked = !isRibbonsLocked;
-        const btn = document.getElementById('lock-ribbons-btn');
-        btn.classList.toggle('tool-locked', isRibbonsLocked);
-        btn.innerHTML = isRibbonsLocked ? '🔓 Ribbons Locked' : '🔓 Lock Ribbons';
+// Top Bar Lock Toggles
+function toggleMedalRackLock() {
+    isMedalRackLocked = !isMedalRackLocked;
+    const btn = document.getElementById('btn-lock-medals');
+    if (btn) {
+        btn.textContent = isMedalRackLocked ? "Unlock Medal Rack" : "Lock Medal Rack";
+        btn.classList.toggle('tool-locked', isMedalRackLocked);
     }
     renderPreview();
+}
+
+function toggleRibbonRackLock() {
+    isRibbonRackLocked = !isRibbonRackLocked;
+    const btn = document.getElementById('btn-lock-ribbons');
+    if (btn) {
+        btn.textContent = isRibbonRackLocked ? "Unlock Ribbon Rack" : "Lock Ribbon Rack";
+        btn.classList.toggle('tool-locked', isRibbonRackLocked);
+    }
+    renderPreview();
+}
+
+function toggleCitationRackLock() {
+    isCitationRackLocked = !isCitationRackLocked;
+    const btn = document.getElementById('btn-lock-citations');
+    if (btn) {
+        btn.textContent = isCitationRackLocked ? "Unlock Citation Rack" : "Lock Citation Rack";
+        btn.classList.toggle('tool-locked', isCitationRackLocked);
+    }
+    renderPreview();
+}
+
+function clearAllAwardRacks() {
+    if (confirm("Are you sure you want to clear all awards from the page?")) {
+        selectedRack = [];
+        renderPreview();
+    }
 }
 
 function removeFromRack(id) {
     selectedRack = selectedRack.filter(a => a.id !== id);
     renderPreview();
+}
+
+// --- SELECTION PAGE OVERLAY (CLICK TO REMOVE) ---
+function updateSelectionPageOverlays() {
+    const awardCards = document.querySelectorAll('.award-card');
+    awardCards.forEach(card => {
+        const awardId = card.getAttribute('data-award-id');
+        const isOnPage = selectedRack.some(item => item.id === awardId);
+
+        let overlay = card.querySelector('.remove-overlay');
+        if (overlay) overlay.remove();
+
+        if (isOnPage) {
+            card.style.position = 'relative';
+            overlay = document.createElement('div');
+            overlay.className = 'remove-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.4)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.color = '#000000';
+            overlay.style.fontWeight = 'bold';
+            overlay.style.fontSize = '10px';
+            overlay.style.textAlign = 'center';
+            overlay.style.pointerEvents = 'none';
+            overlay.textContent = 'Click To Remove';
+            card.appendChild(overlay);
+        }
+    });
 }
 
 // --- SMART PADDING DETECTOR ---
@@ -706,7 +769,12 @@ function renderPreview() {
         img.style.height = `${ribbonHeight}px`; 
         img.style.zIndex = 500 - index;
         
-        if (isRibbonsLocked) makeCategoryDraggable(img, 'ribbons'); else img.ondblclick = () => removeFromRack(ribbon.id);
+        if (!isRibbonRackLocked) {
+            makeCategoryDraggable(img, 'ribbons');
+        } else {
+            makeIndividualDraggable(img, ribbon);
+        }
+        img.ondblclick = () => removeFromRack(ribbon.id);
         ribbonsContainer.appendChild(img);
     });
 
@@ -731,7 +799,12 @@ function renderPreview() {
         img.style.height = `${citationHeight}px`; 
         img.style.zIndex = 500 - index;
         
-        if (isRibbonsLocked) makeCategoryDraggable(img, 'ribbons'); else img.ondblclick = () => removeFromRack(citation.id);
+        if (!isCitationRackLocked) {
+            makeCategoryDraggable(img, 'ribbons');
+        } else {
+            makeIndividualDraggable(img, citation);
+        }
+        img.ondblclick = () => removeFromRack(citation.id);
         citationsContainer.appendChild(img);
     });
 
@@ -762,7 +835,12 @@ function renderPreview() {
         applySmartPadding(img, baseTop);
         img.style.zIndex = 1000 - index; 
         
-        if (isMedalsLocked) makeCategoryDraggable(img, 'medals'); else img.ondblclick = () => removeFromRack(medal.id);
+        if (!isMedalRackLocked) {
+            makeCategoryDraggable(img, 'medals');
+        } else {
+            makeIndividualDraggable(img, medal);
+        }
+        img.ondblclick = () => removeFromRack(medal.id);
         medalsContainer.appendChild(img);
     });
 
@@ -776,8 +854,11 @@ function renderPreview() {
         img.style.zIndex = 2000;
         
         makeIndividualDraggable(img, badge);
+        img.ondblclick = () => removeFromRack(badge.id); // Badges now removable via double click
         badgesContainer.appendChild(img);
     });
+
+    updateSelectionPageOverlays();
 }
 
 // --- DRAG ENGINES ---
