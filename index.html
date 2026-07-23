@@ -76,46 +76,51 @@
         <div class="bottom-explorer" id="bottom-explorer"></div>
     </div>
 
-    <!-- ISKRA ACCESS BADGE GENERATOR MODAL -->
-    <div id="badge-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="width: 420px;">
-            <div class="modal-header">
-                <h3>ISKRA Access Badge Creator</h3>
-                <button class="close-btn" onclick="closeBadgeModal()">✖</button>
+<!-- ISKRA ACCESS BADGE GENERATOR MODAL -->
+<div id="badge-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="width: 420px;">
+        <div class="modal-header">
+            <h3>ISKRA Access Badge Creator</h3>
+            <button class="close-btn" onclick="closeBadgeModal()">✖</button>
+        </div>
+        <div class="modal-body" style="text-align: left;">
+            <p style="margin-bottom: 15px;">Configure your ISKRA roleplay identification badge:</p>
+            
+            <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Select Department Base:</label>
+            <select id="badge-template-select" class="base-select" style="width: 100%; margin-bottom: 15px;" onchange="updateBadgePreview()">
+                <option value="ISKRA_Agitprop.png">Agitprop</option>
+                <option value="ISKRA_Archives.png">Archives</option>
+                <option value="ISKRA_Correspondents.png">Correspondents</option>
+                <option value="ISKRA_Education.png">Education</option>
+                <option value="ISKRA_HC.png">High Command (HC)</option>
+                <option value="ISKRA_HumanResources.png">Human Resources</option>
+                <option value="ISKRA_Telecommunications.png">Telecommunications</option>
+            </select>
+
+            <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Optional Overlay Bar:</label>
+            <select id="badge-overlay-select" class="base-select" style="width: 100%; margin-bottom: 15px;" onchange="updateBadgePreview()">
+                <option value="">None</option>
+                <option value="ISKRA_Directorate_Bar.png">Directorate Bar</option>
+                <option value="ISKRA_IA_Bar.png">Internal Affairs (IA) Bar</option>
+            </select>
+
+            <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Roblox Username:</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input type="text" id="roblox-username-input" placeholder="Enter username..." class="base-select" style="flex-grow: 1; cursor: text;">
+                <button class="tool-btn" onclick="fetchAndLoadUserHeadshot()" style="background-color: #00a8ff; font-weight: bold;">Fetch Headshot</button>
             </div>
-            <div class="modal-body" style="text-align: left;">
-                <p style="margin-bottom: 15px;">Configure your ISKRA roleplay identification badge:</p>
-                
-                <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Select Department / Variant:</label>
-                <select id="badge-template-select" class="base-select" style="width: 100%; margin-bottom: 15px;" onchange="updateBadgePreview()">
-                    <option value="ISKRA_Agitprop.png">Agitprop</option>
-                    <option value="ISKRA_Archives.png">Archives</option>
-                    <option value="ISKRA_Correspondents.png">Correspondents</option>
-                    <option value="ISKRA_Directorate_Bar.png">Directorate Bar</option>
-                    <option value="ISKRA_Education.png">Education</option>
-                    <option value="ISKRA_HC.png">High Command (HC)</option>
-                    <option value="ISKRA_HumanResources.png">Human Resources</option>
-                    <option value="ISKRA_IA_Bar.png">Internal Affairs (IA) Bar</option>
-                    <option value="ISKRA_Telecommunications.png">Telecommunications</option>
-                </select>
+            <div id="headshot-status" style="font-size: 11px; color: #888; margin-bottom: 15px; min-height: 15px;"></div>
 
-                <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Roblox Username:</label>
-                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                    <input type="text" id="roblox-username-input" placeholder="Enter username..." class="base-select" style="flex-grow: 1; cursor: text;">
-                    <button class="tool-btn" onclick="fetchAndLoadUserHeadshot()" style="background-color: #00a8ff; font-weight: bold;">Fetch Headshot</button>
-                </div>
-                <div id="headshot-status" style="font-size: 11px; color: #888; margin-bottom: 15px; min-height: 15px;"></div>
+            <div style="display: flex; justify-content: center; background: #111; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 20px;">
+                <canvas id="badge-preview-canvas" width="64" height="64" style="image-rendering: pixelated; width: 128px; height: 128px; border: 1px dashed #444;"></canvas>
+            </div>
 
-                <div style="display: flex; justify-content: center; background: #111; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 20px;">
-                    <canvas id="badge-preview-canvas" width="64" height="64" style="image-rendering: pixelated; width: 128px; height: 128px; border: 1px dashed #444;"></canvas>
-                </div>
-
-                <div class="modal-actions">
-                    <button class="export-btn" onclick="generateAndAddBadgeToRack()">Add Badge to Uniform</button>
-                </div>
+            <div class="modal-actions">
+                <button class="export-btn" onclick="generateAndAddBadgeToRack()">Add Badge to Uniform</button>
             </div>
         </div>
     </div>
+</div>
 
     <!-- EXPORT MODAL -->
     <div id="export-modal" class="modal-overlay" style="display: none;">
