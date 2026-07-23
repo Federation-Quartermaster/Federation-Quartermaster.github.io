@@ -42,6 +42,28 @@ function copyAssetIdToClipboard() {
     }
 }
 
+function launchDiscordChannel() {
+    // Automatically copies the generated asset ID to the clipboard before opening Discord
+    copyAssetIdToClipboard();
+
+    const serverId = "1507771629218824202"; 
+    const channelId = "1527937241459069068";
+    
+    // Deep link protocol to open the native desktop/mobile app
+    const appUrl = `discord://discord.com/channels/${serverId}/${channelId}`;
+    
+    // Standard web URL backup
+    const webUrl = `https://discord.com/channels/${serverId}/${channelId}`;
+    
+    // Try opening the native app
+    window.location.href = appUrl;
+    
+    // Fallback: If the app doesn't open within 1.5 seconds, open the browser tab
+    setTimeout(() => {
+        window.open(webUrl, '_blank');
+    }, 1500);
+}
+
 // Camera Zoom/Pan Engine
 let scale = 4;
 
