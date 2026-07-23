@@ -306,17 +306,17 @@ function updateBadgePreview() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Draw Department Template FIRST so it acts as the opaque base window
     const templateImg = new Image();
     templateImg.onload = function() {
-        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
-
-        // 2. Draw Headshot SECOND, positioned precisely inside the green box slot window
+        // 1. Draw headshot strictly 15x15 inside the green box placement bounds first
         if (uploadedHeadshotObj) {
-            ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
+            ctx.drawImage(uploadedHeadshotObj, 6, 8, 15, 15);
         }
+
+        // 2. Draw the full badge template on top so the window frames the headshot cleanly
+        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
         
-        // 3. Draw Optional Overlay Bar (Directorate/IA) on top if selected
+        // 3. Draw optional overlay bar on top if selected
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.onload = function() {
@@ -341,13 +341,13 @@ function generateAndAddBadgeToRack() {
     const templateImg = new Image();
     templateImg.crossOrigin = "Anonymous";
     templateImg.onload = function() {
-        // Base Department Template
-        ctx.drawImage(templateImg, 0, 0, 64, 64);
-
-        // Headshot inside the green box window coordinates
+        // 1. Headshot drawn at 15x15 inside the green box bounds
         if (uploadedHeadshotObj) {
-            ctx.drawImage(uploadedHeadshotObj, 6, 8, 22, 22);
+            ctx.drawImage(uploadedHeadshotObj, 6, 8, 15, 15);
         }
+
+        // 2. Full badge template on top
+        ctx.drawImage(templateImg, 0, 0, 64, 64);
         
         if (overlaySrc) {
             const overlayImg = new Image();
