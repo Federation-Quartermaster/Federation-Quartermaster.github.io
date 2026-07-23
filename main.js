@@ -577,7 +577,7 @@ function toggleMedalRackLock() {
     isMedalRackLocked = !isMedalRackLocked;
     const btn = document.getElementById('btn-lock-medals');
     if (btn) {
-        btn.textContent = isMedalRackLocked ? "Unlock Medal Rack" : "Lock Medal Rack";
+        btn.textContent = isMedalRackLocked ? "Unlock Medal Rack Position" : "Lock Medal Rack Position";
         btn.classList.toggle('tool-locked', isMedalRackLocked);
     }
     renderPreview();
@@ -587,7 +587,7 @@ function toggleRibbonRackLock() {
     isRibbonRackLocked = !isRibbonRackLocked;
     const btn = document.getElementById('btn-lock-ribbons');
     if (btn) {
-        btn.textContent = isRibbonRackLocked ? "Unlock Ribbon Rack" : "Lock Ribbon Rack";
+        btn.textContent = isRibbonRackLocked ? "Unlock Ribbon Rack Position" : "Lock Ribbon Rack Position";
         btn.classList.toggle('tool-locked', isRibbonRackLocked);
     }
     renderPreview();
@@ -597,7 +597,7 @@ function toggleCitationRackLock() {
     isCitationRackLocked = !isCitationRackLocked;
     const btn = document.getElementById('btn-lock-citations');
     if (btn) {
-        btn.textContent = isCitationRackLocked ? "Unlock Citation Rack" : "Lock Citation Rack";
+        btn.textContent = isCitationRackLocked ? "Unlock Citation Rack Position" : "Lock Citation Rack Position";
         btn.classList.toggle('tool-locked', isCitationRackLocked);
     }
     renderPreview();
