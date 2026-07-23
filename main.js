@@ -301,26 +301,30 @@ function updateBadgePreview() {
     const overlaySrc = document.getElementById('badge-overlay-select').value;
     
     const canvas = document.getElementById('badge-preview-canvas');
+    // Ensure native canvas resolution matches the 25x39 badge dimensions
+    canvas.width = 25;
+    canvas.height = 39;
+    
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // 1. Draw headshot at the bottom layer, mapped precisely to the green box slot (x=2, y=7, 15x15)
+    if (uploadedHeadshotObj) {
+        ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
+    }
+
+    // 2. Draw the full 25x39 department template on top
     const templateImg = new Image();
     templateImg.onload = function() {
-        // 1. Draw headshot at x=2, y=7 with size 15x15 inside the exact green box bounds
-        if (uploadedHeadshotObj) {
-            ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
-        }
-
-        // 2. Draw the full badge template (25x39 native sizing layer) on top
-        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(templateImg, 0, 0, 25, 39);
         
-        // 3. Draw optional overlay bar on top if selected
+        // 3. Draw optional overlay bar on top of the template if selected
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.onload = function() {
-                ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(overlayImg, 0, 0, 25, 39);
             };
             overlayImg.src = overlaySrc;
         }
@@ -333,27 +337,27 @@ function generateAndAddBadgeToRack() {
     const overlaySrc = document.getElementById('badge-overlay-select').value;
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = 64;
-    tempCanvas.height = 64;
+    tempCanvas.width = 25;
+    tempCanvas.height = 39;
     const ctx = tempCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
+
+    // 1. Headshot drawn first at the green box window coordinates
+    if (uploadedHeadshotObj) {
+        ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
+    }
 
     const templateImg = new Image();
     templateImg.crossOrigin = "Anonymous";
     templateImg.onload = function() {
-        // 1. Headshot strictly inside the green box slot (x=2, y=7, 15x15)
-        if (uploadedHeadshotObj) {
-            ctx.drawImage(uploadedHeadshotObj, 2, 7, 15, 15);
-        }
-
-        // 2. Full badge template on top
-        ctx.drawImage(templateImg, 0, 0, 64, 64);
+        // 2. Department template on top
+        ctx.drawImage(templateImg, 0, 0, 25, 39);
         
         if (overlaySrc) {
             const overlayImg = new Image();
             overlayImg.crossOrigin = "Anonymous";
             overlayImg.onload = function() {
-                ctx.drawImage(overlayImg, 0, 0, 64, 64);
+                ctx.drawImage(overlayImg, 0, 0, 25, 39);
                 finalizeAndPushBadge(tempCanvas);
             };
             overlayImg.src = overlaySrc;
