@@ -3,7 +3,7 @@ let allAwardsData = [];
 let selectedRack = [];
 let lastSubmissionData = ""; 
 
-// Drag & Lock States (Updated for separate racks)
+// Drag & Lock States (Separate racks)
 let isMedalRackLocked = false;
 let isRibbonRackLocked = false;
 let isCitationRackLocked = false;
@@ -222,6 +222,7 @@ function renderBottomBar() {
             const card = document.createElement('div');
             card.className = 'award-card';
             card.style.cursor = 'pointer';
+            card.setAttribute('data-award-id', badge.id);
 
             const img = document.createElement('img');
             img.src = badge.activeImage;
@@ -232,13 +233,14 @@ function renderBottomBar() {
             card.appendChild(img);
             card.appendChild(nameLabel);
 
-            // Clicking adds a clone of this saved badge onto the uniform rack
             card.onclick = () => {
-                selectedRack.push({
-                    ...badge,
-                    id: `iskra_custom_badge_${Date.now()}_${Math.random()}`
-                });
-                renderPreview();
+                const existingIndex = selectedRack.findIndex(item => item.id === badge.id);
+                if (existingIndex !== -1) {
+                    removeFromRack(badge.id);
+                } else {
+                    selectedRack.push({ ...badge });
+                    renderPreview();
+                }
             };
 
             container.appendChild(card);
@@ -436,7 +438,6 @@ function finalizeAndPushBadge(tempCanvas) {
         y: 40
     };
 
-    // Save to browser storage
     let savedBadges = JSON.parse(localStorage.getItem('iskra_saved_access_badges') || '[]');
     savedBadges.push(badgeObj);
     localStorage.setItem('iskra_saved_access_badges', JSON.stringify(savedBadges));
@@ -571,7 +572,7 @@ function handleTorsoUpload(event) {
     }
 }
 
-// Top Bar Lock Toggles
+// Top Bar Control Functions
 function toggleMedalRackLock() {
     isMedalRackLocked = !isMedalRackLocked;
     const btn = document.getElementById('btn-lock-medals');
@@ -619,6 +620,8 @@ function updateSelectionPageOverlays() {
     const awardCards = document.querySelectorAll('.award-card');
     awardCards.forEach(card => {
         const awardId = card.getAttribute('data-award-id');
+        if (!awardId) return;
+
         const isOnPage = selectedRack.some(item => item.id === awardId);
 
         let overlay = card.querySelector('.remove-overlay');
@@ -908,7 +911,7 @@ function renderPreview() {
         img.style.zIndex = 2000;
         
         makeIndividualDraggable(img, badge);
-        img.ondblclick = () => removeFromRack(badge.id); // Badges now removable via double click
+        img.ondblclick = () => removeFromRack(badge.id);
         badgesContainer.appendChild(img);
     });
 
