@@ -71,24 +71,24 @@
         .workspace {
             display: flex;
             flex: 1;
-            overflow: hidden; /* Prevent scrolling on the wrapper */
+            overflow: hidden;
         }
 
         /* Canvas Container */
         .canvas-container {
             flex: 1;
             background: #11111b;
-            overflow: auto; /* Scrollbars appear here if image is huge/zoomed */
+            overflow: auto;
             position: relative;
             cursor: crosshair;
-            padding: 20px; /* Buffer around the canvas */
+            padding: 20px;
         }
         
         /* The Canvas itself */
         canvas {
             display: block;
-            image-rendering: pixelated; /* Keeps pixels crisp when zoomed */
-            transform-origin: top left; /* Zooms from the top left corner */
+            image-rendering: pixelated; /* Keeps image crisp when zoomed */
+            transform-origin: top left;
             background: transparent;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
@@ -208,52 +208,44 @@
         let selections = [];
         let isDrawing = false;
         
-        // Coordinates
         let startX = 0, startY = 0;
         let currentX = 0, currentY = 0;
-        
-        // Zoom State
         let zoomLevel = 1;
 
-        // Apply scaling visually via CSS transform to maintain pixel-perfect crispness
         function applyZoom() {
             workspaceCanvas.style.transform = `scale(${zoomLevel})`;
             zoomLabel.textContent = `${Math.round(zoomLevel * 100)}%`;
             zoomSlider.value = zoomLevel;
         }
 
-        // Zoom via Slider
         zoomSlider.addEventListener('input', function(e) {
             zoomLevel = parseFloat(e.target.value);
             applyZoom();
         });
 
-        // Zoom via Ctrl + Mouse Wheel
         canvasContainer.addEventListener('wheel', function(e) {
             if (e.ctrlKey) {
-                e.preventDefault(); // Prevent standard browser zoom
+                e.preventDefault();
                 const zoomStep = 0.5;
                 if (e.deltaY < 0) {
-                    zoomLevel = Math.min(15, zoomLevel + zoomStep); // Zoom in
+                    zoomLevel = Math.min(15, zoomLevel + zoomStep);
                 } else {
-                    zoomLevel = Math.max(1, zoomLevel - zoomStep); // Zoom out
+                    zoomLevel = Math.max(1, zoomLevel - zoomStep);
                 }
                 applyZoom();
             }
         });
 
-        // Handle Image Upload
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(event) {
                 sourceImage.onload = function() {
-                    // Set native canvas size to match image pixels exactly
                     workspaceCanvas.width = sourceImage.width;
                     workspaceCanvas.height = sourceImage.height;
                     selections = [];
-                    zoomLevel = 1; // Reset zoom
+                    zoomLevel = 1;
                     applyZoom();
                     redrawCanvas();
                 }
@@ -262,16 +254,15 @@
             reader.readAsDataURL(file);
         });
 
-        // Calculate accurate mouse coordinates relative to the scaled image
+        // Use Math.floor to snap exactly to integer pixels
         function getMousePos(e) {
             const rect = workspaceCanvas.getBoundingClientRect();
             return {
-                x: (e.clientX - rect.left) / zoomLevel,
-                y: (e.clientY - rect.top) / zoomLevel
+                x: Math.floor((e.clientX - rect.left) / zoomLevel),
+                y: Math.floor((e.clientY - rect.top) / zoomLevel)
             };
         }
 
-        // Drawing Mechanics
         workspaceCanvas.addEventListener('mousedown', function(e) {
             if (!sourceImage.src) return;
             isDrawing = true;
@@ -294,16 +285,14 @@
             if (!isDrawing) return;
             isDrawing = false;
             
-            // Calculate final rect accommodating any drag direction
             const rect = {
-                x: Math.round(Math.min(startX, currentX)),
-                y: Math.round(Math.min(startY, currentY)),
-                w: Math.round(Math.abs(currentX - startX)),
-                h: Math.round(Math.abs(currentY - startY))
+                x: Math.min(startX, currentX),
+                y: Math.min(startY, currentY),
+                w: Math.abs(currentX - startX),
+                h: Math.abs(currentY - startY)
             };
 
-            // Only save if it's an actual box (not just a click)
-            if (rect.w > 2 && rect.h > 2) {
+            if (rect.w > 0 && rect.h > 0) {
                 selections.push(rect);
             }
             redrawCanvas();
@@ -316,42 +305,42 @@
             }
         });
 
-        // Redraw the image and all bounding boxes (drawn at 1:1 scale on canvas)
         function redrawCanvas() {
             if (!sourceImage.src) return;
             
+            // Force strict pixel rendering
+            ctx.imageSmoothingEnabled = false;
             ctx.clearRect(0, 0, workspaceCanvas.width, workspaceCanvas.height);
             ctx.drawImage(sourceImage, 0, 0);
 
-            // Draw saved selections
-            ctx.strokeStyle = '#a6e3a1'; // Green
-            ctx.lineWidth = 1; // 1px stroke looks best on pixel art
-            ctx.fillStyle = 'rgba(166, 227, 161, 0.2)';
+            ctx.lineWidth = 1;
 
             selections.forEach(rect => {
+                ctx.strokeStyle = '#a6e3a1';
+                ctx.fillStyle = 'rgba(166, 227, 161, 0.2)';
                 ctx.beginPath();
-                ctx.rect(rect.x, rect.y, rect.w, rect.h);
+                // Add 0.5 to bypass sub-pixel antialiasing
+                ctx.rect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h);
                 ctx.fill();
                 ctx.stroke();
             });
 
-            // Draw current active selection
             if (isDrawing) {
                 const rx = Math.min(startX, currentX);
                 const ry = Math.min(startY, currentY);
                 const rw = Math.abs(currentX - startX);
                 const rh = Math.abs(currentY - startY);
 
-                ctx.strokeStyle = '#f9e2af'; // Yellow
+                ctx.strokeStyle = '#f9e2af';
                 ctx.fillStyle = 'rgba(249, 226, 175, 0.3)';
                 ctx.beginPath();
-                ctx.rect(rx, ry, rw, rh);
+                // Add 0.5 to bypass sub-pixel antialiasing
+                ctx.rect(rx + 0.5, ry + 0.5, rw, rh);
                 ctx.fill();
                 ctx.stroke();
             }
         }
 
-        // Tools
         clearBtn.addEventListener('click', () => {
             selections = [];
             redrawCanvas();
@@ -365,33 +354,31 @@
             redrawCanvas();
         });
 
-        // Extracting and Splitting
         splitBtn.addEventListener('click', function() {
             if (selections.length === 0) {
                 alert("Please draw at least one selection box on the image first.");
                 return;
             }
 
-            outputContainer.innerHTML = ''; // Clear previous
+            outputContainer.innerHTML = '';
 
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.imageSmoothingEnabled = false;
 
             selections.forEach((rect, index) => {
                 tempCanvas.width = rect.w;
                 tempCanvas.height = rect.h;
                 
-                // Draw the specific slice to the temp canvas
                 tempCtx.clearRect(0, 0, rect.w, rect.h);
                 tempCtx.drawImage(
                     sourceImage, 
-                    rect.x, rect.y, rect.w, rect.h, // Source coordinates
-                    0, 0, rect.w, rect.h            // Destination coordinates
+                    rect.x, rect.y, rect.w, rect.h, 
+                    0, 0, rect.w, rect.h
                 );
 
                 const dataURL = tempCanvas.toDataURL('image/png');
                 
-                // Build UI
                 const box = document.createElement('div');
                 box.className = 'sprite-box';
                 
