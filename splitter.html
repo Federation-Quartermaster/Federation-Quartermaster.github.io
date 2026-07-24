@@ -3,39 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asset Splitter - Federation Quartermaster</title>
+    <title>Visual Asset Splitter - Federation Quartermaster</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #1e1e2e;
             color: #cdd6f4;
             padding: 20px;
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         h1 { border-bottom: 2px solid #89b4fa; padding-bottom: 10px; }
+        p { line-height: 1.5; }
         .control-panel {
             background: #313244;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            display: flex;
+            align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
-        label { display: block; margin-bottom: 5px; font-size: 0.9em; font-weight: bold;}
-        input[type="number"], input[type="file"] {
-            width: 100%;
-            padding: 8px;
+        input[type="file"] {
             background: #45475a;
             border: 1px solid #585b70;
             color: #cdd6f4;
             border-radius: 4px;
-            box-sizing: border-box;
+            padding: 8px;
         }
         button {
-            grid-column: 1 / -1;
-            padding: 10px;
+            padding: 10px 15px;
             background-color: #89b4fa;
             color: #11111b;
             border: none;
@@ -45,10 +43,28 @@
             transition: background 0.2s;
         }
         button:hover { background-color: #74c7ec; }
+        button.danger { background-color: #f38ba8; }
+        button.danger:hover { background-color: #f5a97f; }
+        
+        .canvas-container {
+            width: 100%;
+            max-height: 60vh;
+            overflow: auto;
+            border: 2px solid #585b70;
+            border-radius: 8px;
+            background: #11111b;
+            position: relative;
+            cursor: crosshair;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
         #output-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 15px;
             margin-top: 20px;
         }
         .sprite-box {
@@ -57,51 +73,42 @@
             border-radius: 6px;
             border: 1px solid #313244;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
         }
         .sprite-box img {
             max-width: 100%;
-            image-rendering: pixelated; /* Good for small medal/ribbon graphics */
+            image-rendering: pixelated;
+            margin-bottom: 10px;
         }
         .download-btn {
-            display: block;
-            margin-top: 8px;
-            padding: 4px 8px;
+            padding: 6px 12px;
             background: #a6e3a1;
             color: #11111b;
             text-decoration: none;
             border-radius: 4px;
-            font-size: 0.8em;
+            font-size: 0.85em;
             font-weight: bold;
         }
+        .download-btn:hover { background: #94e2d5; }
     </style>
 </head>
 <body>
 
-    <h1>Sprite Sheet Asset Splitter</h1>
-    <p>Upload a grouped image (e.g., <strong>IRF_Military_Medal_Database_2025.png</strong>) and specify the grid dimensions to slice it into individual award assets.</p>
+    <h1>Visual Asset Splitter</h1>
+    <p>Upload your sprite sheet. <strong>Click and drag</strong> on the image to draw bounding boxes around the medals, ribbons, or groups you want to split. This allows you to easily slice assets of varying sizes.</p>
 
     <div class="control-panel">
-        <div>
-            <label for="imageUpload">Upload Sprite Sheet:</label>
-            <input type="file" id="imageUpload" accept="image/png, image/jpeg">
-        </div>
-        <div>
-            <label for="spriteWidth">Sprite Width (px):</label>
-            <input type="number" id="spriteWidth" value="32" min="1">
-        </div>
-        <div>
-            <label for="spriteHeight">Sprite Height (px):</label>
-            <input type="number" id="spriteHeight" value="32" min="1">
-        </div>
-        <div>
-            <label for="gapX">Horizontal Gap (px):</label>
-            <input type="number" id="gapX" value="0" min="0">
-        </div>
-        <div>
-            <label for="gapY">Vertical Gap (px):</label>
-            <input type="number" id="gapY" value="0" min="0">
-        </div>
-        <button id="splitBtn">Process & Split Image</button>
+        <input type="file" id="imageUpload" accept="image/png, image/jpeg">
+        <button id="undoBtn">Undo Last Box</button>
+        <button id="clearBtn" class="danger">Clear All Boxes</button>
+        <button id="splitBtn">Extract Selected Assets</button>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="workspaceCanvas"></canvas>
     </div>
 
     <h2>Extracted Assets</h2>
@@ -109,80 +116,170 @@
 
     <script>
         const imageUpload = document.getElementById('imageUpload');
+        const workspaceCanvas = document.getElementById('workspaceCanvas');
+        const ctx = workspaceCanvas.getContext('2d');
         const splitBtn = document.getElementById('splitBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const undoBtn = document.getElementById('undoBtn');
         const outputContainer = document.getElementById('output-container');
         
         let sourceImage = new Image();
+        let selections = [];
+        let isDrawing = false;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
 
+        // Handle Image Upload
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(event) {
+                sourceImage.onload = function() {
+                    workspaceCanvas.width = sourceImage.width;
+                    workspaceCanvas.height = sourceImage.height;
+                    selections = [];
+                    redrawCanvas();
+                }
                 sourceImage.src = event.target.result;
             }
             reader.readAsDataURL(file);
         });
 
+        // Drawing Mechanics
+        workspaceCanvas.addEventListener('mousedown', function(e) {
+            if (!sourceImage.src) return;
+            isDrawing = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
+            currentX = startX;
+            currentY = startY;
+        });
+
+        workspaceCanvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return;
+            currentX = e.offsetX;
+            currentY = e.offsetY;
+            redrawCanvas();
+        });
+
+        workspaceCanvas.addEventListener('mouseup', function(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            // Calculate final rect accommodating any drag direction
+            const rect = {
+                x: Math.min(startX, currentX),
+                y: Math.min(startY, currentY),
+                w: Math.abs(currentX - startX),
+                h: Math.abs(currentY - startY)
+            };
+
+            // Only save if it's an actual box (not just a click)
+            if (rect.w > 2 && rect.h > 2) {
+                selections.push(rect);
+            }
+            redrawCanvas();
+        });
+
+        workspaceCanvas.addEventListener('mouseleave', function(e) {
+            if (isDrawing) {
+                isDrawing = false;
+                redrawCanvas();
+            }
+        });
+
+        // Redraw the image and all bounding boxes
+        function redrawCanvas() {
+            if (!sourceImage.src) return;
+            
+            ctx.clearRect(0, 0, workspaceCanvas.width, workspaceCanvas.height);
+            ctx.drawImage(sourceImage, 0, 0);
+
+            // Draw saved selections
+            ctx.strokeStyle = '#a6e3a1'; // Green
+            ctx.lineWidth = 1;
+            ctx.fillStyle = 'rgba(166, 227, 161, 0.2)';
+
+            selections.forEach(rect => {
+                ctx.beginPath();
+                ctx.rect(rect.x, rect.y, rect.w, rect.h);
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // Draw current active selection
+            if (isDrawing) {
+                const rx = Math.min(startX, currentX);
+                const ry = Math.min(startY, currentY);
+                const rw = Math.abs(currentX - startX);
+                const rh = Math.abs(currentY - startY);
+
+                ctx.strokeStyle = '#f9e2af'; // Yellow
+                ctx.fillStyle = 'rgba(249, 226, 175, 0.3)';
+                ctx.beginPath();
+                ctx.rect(rx, ry, rw, rh);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        // Tools
+        clearBtn.addEventListener('click', () => {
+            selections = [];
+            redrawCanvas();
+        });
+
+        undoBtn.addEventListener('click', () => {
+            selections.pop();
+            redrawCanvas();
+        });
+
+        // Extracting and Splitting
         splitBtn.addEventListener('click', function() {
-            if (!sourceImage.src) {
-                alert("Please upload an image first.");
+            if (selections.length === 0) {
+                alert("Please draw at least one selection box on the image first.");
                 return;
             }
 
-            outputContainer.innerHTML = ''; // Clear previous results
+            outputContainer.innerHTML = ''; // Clear previous
 
-            const width = parseInt(document.getElementById('spriteWidth').value);
-            const height = parseInt(document.getElementById('spriteHeight').value);
-            const gapX = parseInt(document.getElementById('gapX').value);
-            const gapY = parseInt(document.getElementById('gapY').value);
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
 
-            const cols = Math.floor((sourceImage.width + gapX) / (width + gapX));
-            const rows = Math.floor((sourceImage.height + gapY) / (height + gapY));
+            selections.forEach((rect, index) => {
+                tempCanvas.width = rect.w;
+                tempCanvas.height = rect.h;
+                
+                // Draw the specific slice to the temp canvas
+                tempCtx.clearRect(0, 0, rect.w, rect.h);
+                tempCtx.drawImage(
+                    sourceImage, 
+                    rect.x, rect.y, rect.w, rect.h, // Source coordinates
+                    0, 0, rect.w, rect.h            // Destination coordinates
+                );
 
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
+                const dataURL = tempCanvas.toDataURL('image/png');
+                
+                // Build UI
+                const box = document.createElement('div');
+                box.className = 'sprite-box';
+                
+                const imgElem = document.createElement('img');
+                imgElem.src = dataURL;
+                
+                const downloadBtn = document.createElement('a');
+                downloadBtn.href = dataURL;
+                downloadBtn.download = `asset_cut_${index + 1}.png`;
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = 'Download Image';
 
-            let count = 1;
-
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
-                    ctx.clearRect(0, 0, width, height);
-                    
-                    const sourceX = x * (width + gapX);
-                    const sourceY = y * (height + gapY);
-
-                    ctx.drawImage(sourceImage, sourceX, sourceY, width, height, 0, 0, width, height);
-                    
-                    // Check if the resulting slice is completely empty (transparent) to avoid clutter
-                    const imageData = ctx.getImageData(0, 0, width, height).data;
-                    const isBlank = !imageData.some(channel => channel !== 0);
-
-                    if (!isBlank) {
-                        const dataURL = canvas.toDataURL('image/png');
-                        
-                        const box = document.createElement('div');
-                        box.className = 'sprite-box';
-                        
-                        const imgElem = document.createElement('img');
-                        imgElem.src = dataURL;
-                        
-                        const downloadBtn = document.createElement('a');
-                        downloadBtn.href = dataURL;
-                        downloadBtn.download = `asset_part_${count}.png`;
-                        downloadBtn.className = 'download-btn';
-                        downloadBtn.textContent = 'Download';
-
-                        box.appendChild(imgElem);
-                        box.appendChild(downloadBtn);
-                        outputContainer.appendChild(box);
-                        
-                        count++;
-                    }
-                }
-            }
+                box.appendChild(imgElem);
+                box.appendChild(downloadBtn);
+                outputContainer.appendChild(box);
+            });
         });
     </script>
 </body>
