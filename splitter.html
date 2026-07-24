@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Splitter - Federation Quartermaster</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { border-bottom: 2px solid #89b4fa; padding-bottom: 10px; }
+        .control-panel {
+            background: #313244;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        label { display: block; margin-bottom: 5px; font-size: 0.9em; font-weight: bold;}
+        input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            background: #45475a;
+            border: 1px solid #585b70;
+            color: #cdd6f4;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            grid-column: 1 / -1;
+            padding: 10px;
+            background-color: #89b4fa;
+            color: #11111b;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #74c7ec; }
+        #output-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .sprite-box {
+            background: #181825;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #313244;
+            text-align: center;
+        }
+        .sprite-box img {
+            max-width: 100%;
+            image-rendering: pixelated; /* Good for small medal/ribbon graphics */
+        }
+        .download-btn {
+            display: block;
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: #a6e3a1;
+            color: #11111b;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sprite Sheet Asset Splitter</h1>
+    <p>Upload a grouped image (e.g., <strong>IRF_Military_Medal_Database_2025.png</strong>) and specify the grid dimensions to slice it into individual award assets.</p>
+
+    <div class="control-panel">
+        <div>
+            <label for="imageUpload">Upload Sprite Sheet:</label>
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg">
+        </div>
+        <div>
+            <label for="spriteWidth">Sprite Width (px):</label>
+            <input type="number" id="spriteWidth" value="32" min="1">
+        </div>
+        <div>
+            <label for="spriteHeight">Sprite Height (px):</label>
+            <input type="number" id="spriteHeight" value="32" min="1">
+        </div>
+        <div>
+            <label for="gapX">Horizontal Gap (px):</label>
+            <input type="number" id="gapX" value="0" min="0">
+        </div>
+        <div>
+            <label for="gapY">Vertical Gap (px):</label>
+            <input type="number" id="gapY" value="0" min="0">
+        </div>
+        <button id="splitBtn">Process & Split Image</button>
+    </div>
+
+    <h2>Extracted Assets</h2>
+    <div id="output-container"></div>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const splitBtn = document.getElementById('splitBtn');
+        const outputContainer = document.getElementById('output-container');
+        
+        let sourceImage = new Image();
+
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                sourceImage.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        splitBtn.addEventListener('click', function() {
+            if (!sourceImage.src) {
+                alert("Please upload an image first.");
+                return;
+            }
+
+            outputContainer.innerHTML = ''; // Clear previous results
+
+            const width = parseInt(document.getElementById('spriteWidth').value);
+            const height = parseInt(document.getElementById('spriteHeight').value);
+            const gapX = parseInt(document.getElementById('gapX').value);
+            const gapY = parseInt(document.getElementById('gapY').value);
+
+            const cols = Math.floor((sourceImage.width + gapX) / (width + gapX));
+            const rows = Math.floor((sourceImage.height + gapY) / (height + gapY));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            let count = 1;
+
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    ctx.clearRect(0, 0, width, height);
+                    
+                    const sourceX = x * (width + gapX);
+                    const sourceY = y * (height + gapY);
+
+                    ctx.drawImage(sourceImage, sourceX, sourceY, width, height, 0, 0, width, height);
+                    
+                    // Check if the resulting slice is completely empty (transparent) to avoid clutter
+                    const imageData = ctx.getImageData(0, 0, width, height).data;
+                    const isBlank = !imageData.some(channel => channel !== 0);
+
+                    if (!isBlank) {
+                        const dataURL = canvas.toDataURL('image/png');
+                        
+                        const box = document.createElement('div');
+                        box.className = 'sprite-box';
+                        
+                        const imgElem = document.createElement('img');
+                        imgElem.src = dataURL;
+                        
+                        const downloadBtn = document.createElement('a');
+                        downloadBtn.href = dataURL;
+                        downloadBtn.download = `asset_part_${count}.png`;
+                        downloadBtn.className = 'download-btn';
+                        downloadBtn.textContent = 'Download';
+
+                        box.appendChild(imgElem);
+                        box.appendChild(downloadBtn);
+                        outputContainer.appendChild(box);
+                        
+                        count++;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
