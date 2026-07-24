@@ -5,35 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visual Asset Splitter - Federation Quartermaster</title>
     <style>
-        body {
+        /* Reset and Full Screen Layout */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #1e1e2e;
             color: #cdd6f4;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
         }
-        h1 { border-bottom: 2px solid #89b4fa; padding-bottom: 10px; }
-        p { line-height: 1.5; }
+
+        /* Top Header & Controls */
+        .top-bar {
+            flex-shrink: 0;
+            background: #181825;
+            padding: 15px 20px;
+            border-bottom: 2px solid #313244;
+        }
+        .top-bar h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
+            color: #89b4fa;
+        }
         .control-panel {
-            background: #313244;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 15px;
             flex-wrap: wrap;
         }
+
+        /* Inputs & Buttons */
         input[type="file"] {
             background: #45475a;
             border: 1px solid #585b70;
             color: #cdd6f4;
             border-radius: 4px;
-            padding: 8px;
+            padding: 6px;
+        }
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #313244;
+            padding: 6px 12px;
+            border-radius: 4px;
         }
         button {
-            padding: 10px 15px;
+            padding: 8px 12px;
             background-color: #89b4fa;
             color: #11111b;
             border: none;
@@ -45,43 +66,72 @@
         button:hover { background-color: #74c7ec; }
         button.danger { background-color: #f38ba8; }
         button.danger:hover { background-color: #f5a97f; }
-        
-        .canvas-container {
-            width: 100%;
-            max-height: 60vh;
-            overflow: auto;
-            border: 2px solid #585b70;
-            border-radius: 8px;
-            background: #11111b;
-            position: relative;
-            cursor: crosshair;
-        }
-        canvas {
-            display: block;
-            image-rendering: pixelated;
+
+        /* Main Workspace Area */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Prevent scrolling on the wrapper */
         }
 
-        #output-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 20px;
+        /* Canvas Container */
+        .canvas-container {
+            flex: 1;
+            background: #11111b;
+            overflow: auto; /* Scrollbars appear here if image is huge/zoomed */
+            position: relative;
+            cursor: crosshair;
+            padding: 20px; /* Buffer around the canvas */
         }
-        .sprite-box {
+        
+        /* The Canvas itself */
+        canvas {
+            display: block;
+            image-rendering: pixelated; /* Keeps pixels crisp when zoomed */
+            transform-origin: top left; /* Zooms from the top left corner */
+            background: transparent;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Right Sidebar for Outputs */
+        .sidebar {
+            width: 320px;
+            flex-shrink: 0;
             background: #181825;
+            border-left: 2px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 15px;
+            background: #313244;
+            font-weight: bold;
+            text-align: center;
+        }
+        #output-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Output Items */
+        .sprite-box {
+            background: #1e1e2e;
             padding: 10px;
             border-radius: 6px;
-            border: 1px solid #313244;
+            border: 1px solid #45475a;
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
+            gap: 10px;
         }
         .sprite-box img {
             max-width: 100%;
             image-rendering: pixelated;
-            margin-bottom: 10px;
         }
         .download-btn {
             padding: 6px 12px;
@@ -91,45 +141,106 @@
             border-radius: 4px;
             font-size: 0.85em;
             font-weight: bold;
+            width: 100%;
+            box-sizing: border-box;
         }
         .download-btn:hover { background: #94e2d5; }
+        
+        .help-text {
+            font-size: 0.85em;
+            color: #a6adc8;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Visual Asset Splitter</h1>
-    <p>Upload your sprite sheet. <strong>Click and drag</strong> on the image to draw bounding boxes around the medals, ribbons, or groups you want to split. This allows you to easily slice assets of varying sizes.</p>
+    <div class="top-bar">
+        <h1>Visual Asset Splitter</h1>
+        <div class="control-panel">
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg">
+            
+            <div class="zoom-controls">
+                <label for="zoomSlider">Zoom:</label>
+                <input type="range" id="zoomSlider" min="1" max="15" step="0.5" value="1">
+                <span id="zoomLabel">100%</span>
+            </div>
 
-    <div class="control-panel">
-        <input type="file" id="imageUpload" accept="image/png, image/jpeg">
-        <button id="undoBtn">Undo Last Box</button>
-        <button id="clearBtn" class="danger">Clear All Boxes</button>
-        <button id="splitBtn">Extract Selected Assets</button>
+            <button id="undoBtn">Undo Last</button>
+            <button id="clearBtn" class="danger">Clear All</button>
+            <button id="splitBtn">Extract Selected</button>
+            
+            <span class="help-text"><em>Tip: Hold Ctrl + Scroll Wheel to zoom</em></span>
+        </div>
     </div>
 
-    <div class="canvas-container">
-        <canvas id="workspaceCanvas"></canvas>
-    </div>
+    <div class="workspace">
+        <!-- Canvas Area -->
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="workspaceCanvas"></canvas>
+        </div>
 
-    <h2>Extracted Assets</h2>
-    <div id="output-container"></div>
+        <!-- Extracted Assets Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">Extracted Assets</div>
+            <div id="output-container">
+                <div style="text-align:center; color:#6c7086; margin-top: 20px;">
+                    Assets will appear here.
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const imageUpload = document.getElementById('imageUpload');
         const workspaceCanvas = document.getElementById('workspaceCanvas');
+        const canvasContainer = document.getElementById('canvasContainer');
         const ctx = workspaceCanvas.getContext('2d');
+        
         const splitBtn = document.getElementById('splitBtn');
         const clearBtn = document.getElementById('clearBtn');
         const undoBtn = document.getElementById('undoBtn');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomLabel = document.getElementById('zoomLabel');
         const outputContainer = document.getElementById('output-container');
         
         let sourceImage = new Image();
         let selections = [];
         let isDrawing = false;
-        let startX = 0;
-        let startY = 0;
-        let currentX = 0;
-        let currentY = 0;
+        
+        // Coordinates
+        let startX = 0, startY = 0;
+        let currentX = 0, currentY = 0;
+        
+        // Zoom State
+        let zoomLevel = 1;
+
+        // Apply scaling visually via CSS transform to maintain pixel-perfect crispness
+        function applyZoom() {
+            workspaceCanvas.style.transform = `scale(${zoomLevel})`;
+            zoomLabel.textContent = `${Math.round(zoomLevel * 100)}%`;
+            zoomSlider.value = zoomLevel;
+        }
+
+        // Zoom via Slider
+        zoomSlider.addEventListener('input', function(e) {
+            zoomLevel = parseFloat(e.target.value);
+            applyZoom();
+        });
+
+        // Zoom via Ctrl + Mouse Wheel
+        canvasContainer.addEventListener('wheel', function(e) {
+            if (e.ctrlKey) {
+                e.preventDefault(); // Prevent standard browser zoom
+                const zoomStep = 0.5;
+                if (e.deltaY < 0) {
+                    zoomLevel = Math.min(15, zoomLevel + zoomStep); // Zoom in
+                } else {
+                    zoomLevel = Math.max(1, zoomLevel - zoomStep); // Zoom out
+                }
+                applyZoom();
+            }
+        });
 
         // Handle Image Upload
         imageUpload.addEventListener('change', function(e) {
@@ -138,9 +249,12 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 sourceImage.onload = function() {
+                    // Set native canvas size to match image pixels exactly
                     workspaceCanvas.width = sourceImage.width;
                     workspaceCanvas.height = sourceImage.height;
                     selections = [];
+                    zoomLevel = 1; // Reset zoom
+                    applyZoom();
                     redrawCanvas();
                 }
                 sourceImage.src = event.target.result;
@@ -148,20 +262,31 @@
             reader.readAsDataURL(file);
         });
 
+        // Calculate accurate mouse coordinates relative to the scaled image
+        function getMousePos(e) {
+            const rect = workspaceCanvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left) / zoomLevel,
+                y: (e.clientY - rect.top) / zoomLevel
+            };
+        }
+
         // Drawing Mechanics
         workspaceCanvas.addEventListener('mousedown', function(e) {
             if (!sourceImage.src) return;
             isDrawing = true;
-            startX = e.offsetX;
-            startY = e.offsetY;
+            const pos = getMousePos(e);
+            startX = pos.x;
+            startY = pos.y;
             currentX = startX;
             currentY = startY;
         });
 
         workspaceCanvas.addEventListener('mousemove', function(e) {
             if (!isDrawing) return;
-            currentX = e.offsetX;
-            currentY = e.offsetY;
+            const pos = getMousePos(e);
+            currentX = pos.x;
+            currentY = pos.y;
             redrawCanvas();
         });
 
@@ -171,10 +296,10 @@
             
             // Calculate final rect accommodating any drag direction
             const rect = {
-                x: Math.min(startX, currentX),
-                y: Math.min(startY, currentY),
-                w: Math.abs(currentX - startX),
-                h: Math.abs(currentY - startY)
+                x: Math.round(Math.min(startX, currentX)),
+                y: Math.round(Math.min(startY, currentY)),
+                w: Math.round(Math.abs(currentX - startX)),
+                h: Math.round(Math.abs(currentY - startY))
             };
 
             // Only save if it's an actual box (not just a click)
@@ -191,7 +316,7 @@
             }
         });
 
-        // Redraw the image and all bounding boxes
+        // Redraw the image and all bounding boxes (drawn at 1:1 scale on canvas)
         function redrawCanvas() {
             if (!sourceImage.src) return;
             
@@ -200,7 +325,7 @@
 
             // Draw saved selections
             ctx.strokeStyle = '#a6e3a1'; // Green
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1; // 1px stroke looks best on pixel art
             ctx.fillStyle = 'rgba(166, 227, 161, 0.2)';
 
             selections.forEach(rect => {
@@ -230,6 +355,9 @@
         clearBtn.addEventListener('click', () => {
             selections = [];
             redrawCanvas();
+            if(selections.length === 0 && !sourceImage.src) {
+                outputContainer.innerHTML = '<div style="text-align:center; color:#6c7086; margin-top: 20px;">Assets will appear here.</div>';
+            }
         });
 
         undoBtn.addEventListener('click', () => {
@@ -267,6 +395,11 @@
                 const box = document.createElement('div');
                 box.className = 'sprite-box';
                 
+                const label = document.createElement('div');
+                label.style.fontSize = '0.8em';
+                label.style.color = '#a6adc8';
+                label.textContent = `${rect.w}x${rect.h} px`;
+
                 const imgElem = document.createElement('img');
                 imgElem.src = dataURL;
                 
@@ -274,8 +407,9 @@
                 downloadBtn.href = dataURL;
                 downloadBtn.download = `asset_cut_${index + 1}.png`;
                 downloadBtn.className = 'download-btn';
-                downloadBtn.textContent = 'Download Image';
+                downloadBtn.textContent = 'Download';
 
+                box.appendChild(label);
                 box.appendChild(imgElem);
                 box.appendChild(downloadBtn);
                 outputContainer.appendChild(box);
