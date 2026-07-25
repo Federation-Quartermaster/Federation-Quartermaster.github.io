@@ -143,56 +143,56 @@ function closeHelpModal() {
 }
 
 // --- EXPLORER SCROLL & DRAG SYSTEM (Fixed Drag/Selection Bug) ---
+// --- EXPLORER SCROLL & DRAG SYSTEM (Clean Pointer State Machine) ---
 function initExplorerScrolling() {
     const container = document.getElementById('bottom-explorer');
     
     container.addEventListener('wheel', (evt) => {
         evt.preventDefault();
         container.scrollLeft += evt.deltaY;
-    });
+    }, { passive: false });
 
     let isDown = false;
-    let startX;
-    let scrollLeft;
-    let isDragging = false;
-
-    // Prevent text highlighting while dragging/scrolling the bar
-    container.addEventListener('selectstart', (e) => {
-        if (isDown) e.preventDefault();
-    });
+    let startX = 0;
+    let scrollLeft = 0;
+    let hasMoved = false;
 
     container.addEventListener('mousedown', (e) => {
         if (e.target.tagName.toLowerCase() === 'select') return;
-        
         isDown = true;
-        isDragging = false;
+        hasMoved = false;
         startX = e.pageX - container.offsetLeft;
         scrollLeft = container.scrollLeft;
     });
-    
-    window.addEventListener('mouseup', () => { 
-        isDown = false; 
-    });
-    
-    container.addEventListener('mousemove', (e) => {
+
+    const handleMouseUp = () => {
+        if (!isDown) return;
+        isDown = false;
+    };
+
+    const handleMouseMove = (e) => {
         if (!isDown) return;
         const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX);
         
-        if (Math.abs(x - startX) > 5) {
-            isDragging = true;
+        if (Math.abs(walk) > 4) {
+            hasMoved = true;
         }
-        
-        if (isDragging) {
-            e.preventDefault();
-            const walk = (x - startX) * 2; 
-            container.scrollLeft = scrollLeft - walk;
-        }
-    });
 
+        if (hasMoved) {
+            container.scrollLeft = scrollLeft - (walk * 1.5);
+        }
+    };
+
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // Prevent click execution if the user was dragging the container
     container.addEventListener('click', (e) => {
-        if (isDragging) {
+        if (hasMoved) {
             e.preventDefault();
             e.stopPropagation();
+            hasMoved = false; // Reset after blocking
         }
     }, true);
 }
