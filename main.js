@@ -133,8 +133,16 @@ function unifyAwardsData(data) {
 
     return Object.values(unified);
 }
+// --- HELP MODAL HELPERS ---
+function openHelpModal() {
+    document.getElementById('help-modal').style.display = 'flex';
+}
 
-// --- EXPLORER SCROLL & DRAG SYSTEM ---
+function closeHelpModal() {
+    document.getElementById('help-modal').style.display = 'none';
+}
+
+// --- EXPLORER SCROLL & DRAG SYSTEM (Fixed Drag/Selection Bug) ---
 function initExplorerScrolling() {
     const container = document.getElementById('bottom-explorer');
     
@@ -148,6 +156,11 @@ function initExplorerScrolling() {
     let scrollLeft;
     let isDragging = false;
 
+    // Prevent text highlighting while dragging/scrolling the bar
+    container.addEventListener('selectstart', (e) => {
+        if (isDown) e.preventDefault();
+    });
+
     container.addEventListener('mousedown', (e) => {
         if (e.target.tagName.toLowerCase() === 'select') return;
         
@@ -157,24 +170,23 @@ function initExplorerScrolling() {
         scrollLeft = container.scrollLeft;
     });
     
-    container.addEventListener('mouseleave', () => { isDown = false; });
-    
-    container.addEventListener('mouseup', (e) => { isDown = false; });
+    window.addEventListener('mouseup', () => { 
+        isDown = false; 
+    });
     
     container.addEventListener('mousemove', (e) => {
         if (!isDown) return;
-        e.preventDefault();
-        
         const x = e.pageX - container.offsetLeft;
         
-        // --- THE FIX: 5-Pixel Threshold ---
-        // Only trigger the "drag" state if the mouse moves more than 5 pixels
         if (Math.abs(x - startX) > 5) {
             isDragging = true;
         }
         
-        const walk = (x - startX) * 2; 
-        container.scrollLeft = scrollLeft - walk;
+        if (isDragging) {
+            e.preventDefault();
+            const walk = (x - startX) * 2; 
+            container.scrollLeft = scrollLeft - walk;
+        }
     });
 
     container.addEventListener('click', (e) => {
