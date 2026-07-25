@@ -1,10 +1,20 @@
 /* --- BASE THEME & LAYOUT --- */
-body {
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+img, picture, svg, video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+body {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100dvh;
     background-color: #121212;
     color: #e0e0e0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,14 +23,17 @@ body {
 
 /* --- TOP TOOLBAR --- */
 .top-toolbar {
-    height: 50px;
+    height: auto;
+    min-height: 50px;
     background-color: #1a1a1a;
     border-bottom: 1px solid #333;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 10px;
     z-index: 100;
+    gap: 8px;
 }
 
 .logo {
@@ -31,8 +44,10 @@ body {
 
 .global-controls {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
 }
 
 .tool-btn, .export-btn, .base-select {
@@ -61,13 +76,13 @@ body {
 
 /* --- BOTTOM EXPLORER --- */
 .bottom-explorer {
-    height: 180px;
+    height: 140px;
     background-color: #1a1a1a;
     border-top: 2px solid #333;
     display: flex;
     align-items: center;
-    padding: 0 20px;
-    gap: 15px;
+    padding: 0 15px;
+    gap: 12px;
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
@@ -362,4 +377,24 @@ body {
 .policy-links a:hover {
     color: #008cd6;
     text-decoration: underline;
+}
+
+/* --- TABLET & DESKTOP BREAKPOINTS --- */
+@media screen and (min-width: 768px) {
+    .top-toolbar {
+        flex-direction: row;
+        height: 50px;
+        padding: 0 20px;
+    }
+
+    .global-controls {
+        flex-wrap: nowrap;
+        width: auto;
+    }
+
+    .bottom-explorer {
+        height: 180px;
+        padding: 0 20px;
+        gap: 15px;
+    }
 }
