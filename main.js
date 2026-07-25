@@ -143,6 +143,7 @@ function closeHelpModal() {
 }
 
 // --- EXPLORER SCROLL & DRAG SYSTEM (Bulletproof State Release) ---
+// --- EXPLORER SCROLL & DRAG SYSTEM (Global Pointer & Focus Release) ---
 function initExplorerScrolling() {
     const container = document.getElementById('bottom-explorer');
     
@@ -156,8 +157,10 @@ function initExplorerScrolling() {
     let scrollLeft = 0;
     let hasMoved = false;
 
-    container.addEventListener('mousedown', (e) => {
-        if (e.target.tagName.toLowerCase() === 'select') return;
+    container.addEventListener('pointerdown', (e) => {
+        // Ignore select dropdowns and right-clicks
+        if (e.target.tagName.toLowerCase() === 'select' || (e.button && e.button !== 0)) return;
+        
         isDown = true;
         hasMoved = false;
         startX = e.pageX - container.offsetLeft;
@@ -166,16 +169,24 @@ function initExplorerScrolling() {
 
     const forceRelease = () => {
         isDown = false;
-        hasMoved = false;
+        // We purposefully DO NOT reset hasMoved here. 
+        // If we did, the click event that fires immediately after release 
+        // wouldn't know to cancel itself, causing accidental card selections.
     };
 
-    // Global listeners ensure the grab never gets stuck if mouseup happens outside the container
-    window.addEventListener('mouseup', forceRelease);
+    // 1. Make release listeners global so leaving the element doesn't break the drag
+    // 2. Add 'blur' for your LostFocus check
+    // 3. Add 'dragend' to catch native HTML5 drops onto the canvas
+    window.addEventListener('pointerup', forceRelease);
+    window.addEventListener('pointercancel', forceRelease);
     window.addEventListener('mouseleave', forceRelease);
-    window.addEventListener('blur', forceRelease);
+    window.addEventListener('blur', forceRelease); 
+    window.addEventListener('dragend', forceRelease); 
 
-    container.addEventListener('mousemove', (e) => {
+    // Make the move listener global so the scroll doesn't stutter if the cursor leaves the bar
+    window.addEventListener('pointermove', (e) => {
         if (!isDown) return;
+        
         const x = e.pageX - container.offsetLeft;
         const walk = (x - startX);
         
@@ -184,7 +195,6 @@ function initExplorerScrolling() {
         }
 
         if (hasMoved) {
-            e.preventDefault();
             container.scrollLeft = scrollLeft - (walk * 1.5);
         }
     });
@@ -193,11 +203,10 @@ function initExplorerScrolling() {
         if (hasMoved) {
             e.preventDefault();
             e.stopPropagation();
-            hasMoved = false;
+            hasMoved = false; // Reset ONLY after successfully blocking the accidental click
         }
     }, true);
 }
-
 // --- DYNAMIC BOTTOM BAR NAVIGATION ---
 function buildExplorer() {
     renderBottomBar();
