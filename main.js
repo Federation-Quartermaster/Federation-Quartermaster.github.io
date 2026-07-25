@@ -842,8 +842,8 @@ function renderPreview() {
         
         const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset + 1; 
         
-        img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
-        img.style.top = `${baseTop + ribbonsOffsetY}px`; 
+        img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
+        img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
         img.style.width = `${ribbonWidth}px`; 
         img.style.height = `${ribbonHeight}px`; 
         img.style.zIndex = 500 - index;
@@ -872,8 +872,8 @@ function renderPreview() {
         const yOffset = (totalRows - 1 - row) * citationHeight;
         const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
         
-        img.style.left = `${baseLeft + ribbonsOffsetX}px`; 
-        img.style.top = `${baseTop + ribbonsOffsetY}px`; 
+        img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
+        img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
         img.style.width = `${citationWidth}px`; 
         img.style.height = `${citationHeight}px`; 
         img.style.zIndex = 500 - index;
@@ -904,12 +904,12 @@ function renderPreview() {
         let startX = centerX - (rowWidth / 2);
         let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
         
-        img.style.left = `${slotCenterX}px`;
+        img.style.left = Math.round(slotCenterX) + 'px';
         img.style.transform = `translateX(-50%)`;
         
         const yOffset = (totalRows - 1 - row) * medalSpacing;
         const baseTop = MEDAL_LINE_Y - yOffset + medalsOffsetY;
-        img.style.top = `${baseTop}px`;
+        img.style.top = Math.round(baseTop) + 'px';
         
         applySmartPadding(img, baseTop);
         img.style.zIndex = 1000 - index; 
@@ -928,8 +928,8 @@ function renderPreview() {
         const img = document.createElement('img');
         img.src = badge.activeImage;
         img.className = 'badge-item';
-        img.style.left = (badge.x !== null ? badge.x : 56) + 'px'; 
-        img.style.top = (badge.y !== null ? badge.y : 10) + 'px';
+        img.style.left = Math.round(badge.x !== null ? badge.x : 56) + 'px'; 
+        img.style.top = Math.round(badge.y !== null ? badge.y : 10) + 'px';
         img.style.zIndex = 2000;
         
         makeIndividualDraggable(img, badge);
@@ -941,6 +941,7 @@ function renderPreview() {
 }
 
 // --- DRAG ENGINES ---
+// --- DRAG ENGINES ---
 function makeCategoryDraggable(el, category) {
     let startX, startY;
     el.onmousedown = function(e) {
@@ -948,6 +949,13 @@ function makeCategoryDraggable(el, category) {
         startX = e.clientX; startY = e.clientY;
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
+        
+        // Initialize exact coordinates for smoother sub-pixel accumulation
+        const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
+        items.forEach(img => {
+            img._exactX = img._exactX !== undefined ? img._exactX : parseFloat(img.style.left);
+            img._exactY = img._exactY !== undefined ? img._exactY : parseFloat(img.style.top);
+        });
     };
     function elementDrag(e) {
         e.preventDefault();
@@ -957,17 +965,18 @@ function makeCategoryDraggable(el, category) {
         
         if (category === 'medals') {
             medalsOffsetX += dx; medalsOffsetY += dy;
-            document.querySelectorAll('.medal-item:not(.indiv-unlocked)').forEach(img => {
-                img.style.left = (parseFloat(img.style.left) + dx) + 'px';
-                img.style.top = (parseFloat(img.style.top) + dy) + 'px';
-            });
         } else if (category === 'ribbons') {
             ribbonsOffsetX += dx; ribbonsOffsetY += dy;
-            document.querySelectorAll('.ribbon-item:not(.indiv-unlocked)').forEach(img => {
-                img.style.left = (parseFloat(img.style.left) + dx) + 'px';
-                img.style.top = (parseFloat(img.style.top) + dy) + 'px';
-            });
         }
+
+        const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
+        items.forEach(img => {
+            img._exactX += dx;
+            img._exactY += dy;
+            // Snap to strict integers to stop sub-pixel blurring
+            img.style.left = Math.round(img._exactX) + 'px';
+            img.style.top = Math.round(img._exactY) + 'px';
+        });
     }
     function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
 }
@@ -988,8 +997,10 @@ function makeIndividualDraggable(el, awardObj) {
         
         awardObj.x = (awardObj.x !== null ? awardObj.x : parseFloat(el.style.left)) + dx;
         awardObj.y = (awardObj.y !== null ? awardObj.y : parseFloat(el.style.top)) + dy;
-        el.style.left = awardObj.x + 'px';
-        el.style.top = awardObj.y + 'px';
+        
+        // Snap to strict integers to stop sub-pixel blurring
+        el.style.left = Math.round(awardObj.x) + 'px';
+        el.style.top = Math.round(awardObj.y) + 'px';
     }
     function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
 }
