@@ -959,36 +959,32 @@ function renderPreview() {
     updateSelectionPageOverlays();
 }
 
-// --- DRAG ENGINES (Updated with Pointer Capture & Prevent Default) ---
+// --- DRAG ENGINES (Unified Pointer Events API) ---
 function makeCategoryDraggable(el, category) {
     let startX, startY;
-    let activePointerId = null;
     let isDraggingActive = false;
 
+    // Prevents the native browser behavior of "ghost dragging" image files
+    el.ondragstart = (e) => e.preventDefault();
+
     function dragStart(e) {
+        // Only allow left-clicks or primary touch contacts
+        if (e.button && e.button !== 0) return;
+        
         e.preventDefault();
-        
-        // Handle pointer capture if available
-        if (e.pointerId !== undefined) {
-            activePointerId = e.pointerId;
-            try { el.setPointerCapture(activePointerId); } catch (err) {}
-        }
-
+        e.stopPropagation();
         isDraggingActive = true;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
-        startX = clientX; 
-        startY = clientY;
 
-        document.addEventListener('mouseup', dragEnd);
-        document.addEventListener('mousemove', elementDrag);
-        document.addEventListener('touchend', dragEnd);
-        document.addEventListener('touchmove', elementDrag, { passive: false });
-        document.addEventListener('pointerup', dragEnd);
-        document.addEventListener('lostpointercapture', dragEnd);
-        window.addEventListener('blur', dragEnd);
-        window.addEventListener('mouseleave', dragEnd);
+        // Lock all subsequent pointer events to this element, even if the mouse moves off of it
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+
+        startX = e.clientX; 
+        startY = e.clientY;
+
+        el.addEventListener('pointermove', elementDrag);
+        el.addEventListener('pointerup', dragEnd);
+        el.addEventListener('pointercancel', dragEnd);
+        el.addEventListener('lostpointercapture', dragEnd);
 
         const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
         items.forEach(img => {
@@ -1000,13 +996,11 @@ function makeCategoryDraggable(el, category) {
     function elementDrag(e) {
         if (!isDraggingActive) return;
         e.preventDefault();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        let dx = (clientX - startX) / 4; 
-        let dy = (clientY - startY) / 4;
-        startX = clientX; 
-        startY = clientY;
+        let dx = (e.clientX - startX) / 4; 
+        let dy = (e.clientY - startY) / 4;
+        startX = e.clientX; 
+        startY = e.clientY;
         
         if (category === 'medals') {
             medalsOffsetX += dx; medalsOffsetY += dy;
@@ -1026,68 +1020,50 @@ function makeCategoryDraggable(el, category) {
     function dragEnd(e) {
         if (!isDraggingActive) return;
         isDraggingActive = false;
+        
+        try { el.releasePointerCapture(e.pointerId); } catch (err) {}
 
-        if (activePointerId !== null) {
-            try { el.releasePointerCapture(activePointerId); } catch (err) {}
-            activePointerId = null;
-        }
-
-        document.removeEventListener('mouseup', dragEnd);
-        document.removeEventListener('mousemove', elementDrag);
-        document.removeEventListener('touchend', dragEnd);
-        document.removeEventListener('touchmove', elementDrag);
-        document.removeEventListener('pointerup', dragEnd);
-        document.removeEventListener('lostpointercapture', dragEnd);
-        window.removeEventListener('blur', dragEnd);
-        window.removeEventListener('mouseleave', dragEnd);
+        el.removeEventListener('pointermove', elementDrag);
+        el.removeEventListener('pointerup', dragEnd);
+        el.removeEventListener('pointercancel', dragEnd);
+        el.removeEventListener('lostpointercapture', dragEnd);
     }
 
-    el.onmousedown = dragStart;
-    el.ontouchstart = dragStart;
     el.onpointerdown = dragStart;
 }
 
 function makeIndividualDraggable(el, awardObj) {
     let startX, startY;
-    let activePointerId = null;
     let isDraggingActive = false;
 
+    el.ondragstart = (e) => e.preventDefault();
+
     function dragStart(e) {
+        if (e.button && e.button !== 0) return;
+        
         e.preventDefault(); 
         e.stopPropagation();
-
-        if (e.pointerId !== undefined) {
-            activePointerId = e.pointerId;
-            try { el.setPointerCapture(activePointerId); } catch (err) {}
-        }
-
         isDraggingActive = true;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
-        startX = clientX; 
-        startY = clientY;
 
-        document.addEventListener('mouseup', dragEnd);
-        document.addEventListener('mousemove', elementDrag);
-        document.addEventListener('touchend', dragEnd);
-        document.addEventListener('touchmove', elementDrag, { passive: false });
-        document.addEventListener('pointerup', dragEnd);
-        document.addEventListener('lostpointercapture', dragEnd);
-        window.addEventListener('blur', dragEnd);
-        window.addEventListener('mouseleave', dragEnd);
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+
+        startX = e.clientX; 
+        startY = e.clientY;
+
+        el.addEventListener('pointermove', elementDrag);
+        el.addEventListener('pointerup', dragEnd);
+        el.addEventListener('pointercancel', dragEnd);
+        el.addEventListener('lostpointercapture', dragEnd);
     }
 
     function elementDrag(e) {
         if (!isDraggingActive) return;
         e.preventDefault();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        let dx = (clientX - startX) / 4; 
-        let dy = (clientY - startY) / 4;
-        startX = clientX; 
-        startY = clientY;
+        let dx = (e.clientX - startX) / 4; 
+        let dy = (e.clientY - startY) / 4;
+        startX = e.clientX; 
+        startY = e.clientY;
         
         awardObj.x = (awardObj.x !== null ? awardObj.x : parseFloat(el.style.left)) + dx;
         awardObj.y = (awardObj.y !== null ? awardObj.y : parseFloat(el.style.top)) + dy;
@@ -1099,24 +1075,15 @@ function makeIndividualDraggable(el, awardObj) {
     function dragEnd(e) {
         if (!isDraggingActive) return;
         isDraggingActive = false;
+        
+        try { el.releasePointerCapture(e.pointerId); } catch (err) {}
 
-        if (activePointerId !== null) {
-            try { el.releasePointerCapture(activePointerId); } catch (err) {}
-            activePointerId = null;
-        }
-
-        document.removeEventListener('mouseup', dragEnd);
-        document.removeEventListener('mousemove', elementDrag);
-        document.removeEventListener('touchend', dragEnd);
-        document.removeEventListener('touchmove', elementDrag);
-        document.removeEventListener('pointerup', dragEnd);
-        document.removeEventListener('lostpointercapture', dragEnd);
-        window.removeEventListener('blur', dragEnd);
-        window.removeEventListener('mouseleave', dragEnd);
+        el.removeEventListener('pointermove', elementDrag);
+        el.removeEventListener('pointerup', dragEnd);
+        el.removeEventListener('pointercancel', dragEnd);
+        el.removeEventListener('lostpointercapture', dragEnd);
     }
 
-    el.onmousedown = dragStart;
-    el.ontouchstart = dragStart;
     el.onpointerdown = dragStart;
 }
 // ==========================================
