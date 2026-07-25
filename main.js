@@ -164,8 +164,15 @@ function initExplorerScrolling() {
     container.addEventListener('mousemove', (e) => {
         if (!isDown) return;
         e.preventDefault();
-        isDragging = true;
+        
         const x = e.pageX - container.offsetLeft;
+        
+        // --- THE FIX: 5-Pixel Threshold ---
+        // Only trigger the "drag" state if the mouse moves more than 5 pixels
+        if (Math.abs(x - startX) > 5) {
+            isDragging = true;
+        }
+        
         const walk = (x - startX) * 2; 
         container.scrollLeft = scrollLeft - walk;
     });
@@ -177,7 +184,6 @@ function initExplorerScrolling() {
         }
     }, true);
 }
-
 
 // --- DYNAMIC BOTTOM BAR NAVIGATION ---
 function buildExplorer() {
