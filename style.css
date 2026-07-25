@@ -379,6 +379,11 @@ body {
     text-decoration: underline;
 }
 
+/* --- MOBILE TOUCH FIX FOR CANVAS --- */
+.canvas-area {
+    touch-action: none; /* Prevents mobile browser from stealing drag gestures */
+}
+
 /* --- TABLET & DESKTOP BREAKPOINTS --- */
 @media screen and (min-width: 768px) {
     .top-toolbar {
