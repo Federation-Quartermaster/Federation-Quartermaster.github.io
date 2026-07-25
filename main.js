@@ -142,8 +142,7 @@ function closeHelpModal() {
     document.getElementById('help-modal').style.display = 'none';
 }
 
-// --- EXPLORER SCROLL & DRAG SYSTEM (Fixed Drag/Selection Bug) ---
-// --- EXPLORER SCROLL & DRAG SYSTEM (Clean Pointer State Machine) ---
+// --- EXPLORER SCROLL & DRAG SYSTEM (Bulletproof State Release) ---
 function initExplorerScrolling() {
     const container = document.getElementById('bottom-explorer');
     
@@ -165,12 +164,17 @@ function initExplorerScrolling() {
         scrollLeft = container.scrollLeft;
     });
 
-    const handleMouseUp = () => {
-        if (!isDown) return;
+    const forceRelease = () => {
         isDown = false;
+        hasMoved = false;
     };
 
-    const handleMouseMove = (e) => {
+    // Global listeners ensure the grab never gets stuck if mouseup happens outside the container
+    window.addEventListener('mouseup', forceRelease);
+    window.addEventListener('mouseleave', forceRelease);
+    window.addEventListener('blur', forceRelease);
+
+    container.addEventListener('mousemove', (e) => {
         if (!isDown) return;
         const x = e.pageX - container.offsetLeft;
         const walk = (x - startX);
@@ -180,19 +184,16 @@ function initExplorerScrolling() {
         }
 
         if (hasMoved) {
+            e.preventDefault();
             container.scrollLeft = scrollLeft - (walk * 1.5);
         }
-    };
+    });
 
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('mousemove', handleMouseMove);
-
-    // Prevent click execution if the user was dragging the container
     container.addEventListener('click', (e) => {
         if (hasMoved) {
             e.preventDefault();
             e.stopPropagation();
-            hasMoved = false; // Reset after blocking
+            hasMoved = false;
         }
     }, true);
 }
