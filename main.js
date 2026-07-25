@@ -960,11 +960,14 @@ function renderPreview() {
 }
 
 // --- DRAG ENGINES (Desktop & Mobile Support) ---
+// --- DRAG ENGINES (Desktop & Mobile Support with Failsafe Release) ---
 function makeCategoryDraggable(el, category) {
     let startX, startY;
+    let isDraggingActive = false;
 
     function dragStart(e) {
         e.preventDefault();
+        isDraggingActive = true;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
@@ -975,6 +978,8 @@ function makeCategoryDraggable(el, category) {
         document.addEventListener('mousemove', elementDrag);
         document.addEventListener('touchend', dragEnd);
         document.addEventListener('touchmove', elementDrag, { passive: false });
+        window.addEventListener('blur', dragEnd);
+        window.addEventListener('mouseleave', dragEnd);
 
         const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
         items.forEach(img => {
@@ -984,6 +989,7 @@ function makeCategoryDraggable(el, category) {
     }
 
     function elementDrag(e) {
+        if (!isDraggingActive) return;
         e.preventDefault();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1009,10 +1015,14 @@ function makeCategoryDraggable(el, category) {
     }
 
     function dragEnd() {
+        if (!isDraggingActive) return;
+        isDraggingActive = false;
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('mousemove', elementDrag);
         document.removeEventListener('touchend', dragEnd);
         document.removeEventListener('touchmove', elementDrag);
+        window.removeEventListener('blur', dragEnd);
+        window.removeEventListener('mouseleave', dragEnd);
     }
 
     el.onmousedown = dragStart;
@@ -1021,10 +1031,12 @@ function makeCategoryDraggable(el, category) {
 
 function makeIndividualDraggable(el, awardObj) {
     let startX, startY;
+    let isDraggingActive = false;
 
     function dragStart(e) {
         e.preventDefault(); 
         e.stopPropagation();
+        isDraggingActive = true;
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1036,9 +1048,12 @@ function makeIndividualDraggable(el, awardObj) {
         document.addEventListener('mousemove', elementDrag);
         document.addEventListener('touchend', dragEnd);
         document.addEventListener('touchmove', elementDrag, { passive: false });
+        window.addEventListener('blur', dragEnd);
+        window.addEventListener('mouseleave', dragEnd);
     }
 
     function elementDrag(e) {
+        if (!isDraggingActive) return;
         e.preventDefault();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1056,10 +1071,14 @@ function makeIndividualDraggable(el, awardObj) {
     }
 
     function dragEnd() {
+        if (!isDraggingActive) return;
+        isDraggingActive = false;
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('mousemove', elementDrag);
         document.removeEventListener('touchend', dragEnd);
         document.removeEventListener('touchmove', elementDrag);
+        window.removeEventListener('blur', dragEnd);
+        window.removeEventListener('mouseleave', dragEnd);
     }
 
     el.onmousedown = dragStart;
