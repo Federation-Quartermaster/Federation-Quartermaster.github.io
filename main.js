@@ -959,14 +959,21 @@ function renderPreview() {
     updateSelectionPageOverlays();
 }
 
-// --- DRAG ENGINES (Desktop & Mobile Support) ---
-// --- DRAG ENGINES (Desktop & Mobile Support with Failsafe Release) ---
+// --- DRAG ENGINES (Updated with Pointer Capture & Prevent Default) ---
 function makeCategoryDraggable(el, category) {
     let startX, startY;
+    let activePointerId = null;
     let isDraggingActive = false;
 
     function dragStart(e) {
         e.preventDefault();
+        
+        // Handle pointer capture if available
+        if (e.pointerId !== undefined) {
+            activePointerId = e.pointerId;
+            try { el.setPointerCapture(activePointerId); } catch (err) {}
+        }
+
         isDraggingActive = true;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -978,6 +985,8 @@ function makeCategoryDraggable(el, category) {
         document.addEventListener('mousemove', elementDrag);
         document.addEventListener('touchend', dragEnd);
         document.addEventListener('touchmove', elementDrag, { passive: false });
+        document.addEventListener('pointerup', dragEnd);
+        document.addEventListener('lostpointercapture', dragEnd);
         window.addEventListener('blur', dragEnd);
         window.addEventListener('mouseleave', dragEnd);
 
@@ -1014,30 +1023,45 @@ function makeCategoryDraggable(el, category) {
         });
     }
 
-    function dragEnd() {
+    function dragEnd(e) {
         if (!isDraggingActive) return;
         isDraggingActive = false;
+
+        if (activePointerId !== null) {
+            try { el.releasePointerCapture(activePointerId); } catch (err) {}
+            activePointerId = null;
+        }
+
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('mousemove', elementDrag);
         document.removeEventListener('touchend', dragEnd);
         document.removeEventListener('touchmove', elementDrag);
+        document.removeEventListener('pointerup', dragEnd);
+        document.removeEventListener('lostpointercapture', dragEnd);
         window.removeEventListener('blur', dragEnd);
         window.removeEventListener('mouseleave', dragEnd);
     }
 
     el.onmousedown = dragStart;
     el.ontouchstart = dragStart;
+    el.onpointerdown = dragStart;
 }
 
 function makeIndividualDraggable(el, awardObj) {
     let startX, startY;
+    let activePointerId = null;
     let isDraggingActive = false;
 
     function dragStart(e) {
         e.preventDefault(); 
         e.stopPropagation();
+
+        if (e.pointerId !== undefined) {
+            activePointerId = e.pointerId;
+            try { el.setPointerCapture(activePointerId); } catch (err) {}
+        }
+
         isDraggingActive = true;
-        
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
@@ -1048,6 +1072,8 @@ function makeIndividualDraggable(el, awardObj) {
         document.addEventListener('mousemove', elementDrag);
         document.addEventListener('touchend', dragEnd);
         document.addEventListener('touchmove', elementDrag, { passive: false });
+        document.addEventListener('pointerup', dragEnd);
+        document.addEventListener('lostpointercapture', dragEnd);
         window.addEventListener('blur', dragEnd);
         window.addEventListener('mouseleave', dragEnd);
     }
@@ -1070,19 +1096,28 @@ function makeIndividualDraggable(el, awardObj) {
         el.style.top = Math.round(awardObj.y) + 'px';
     }
 
-    function dragEnd() {
+    function dragEnd(e) {
         if (!isDraggingActive) return;
         isDraggingActive = false;
+
+        if (activePointerId !== null) {
+            try { el.releasePointerCapture(activePointerId); } catch (err) {}
+            activePointerId = null;
+        }
+
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('mousemove', elementDrag);
         document.removeEventListener('touchend', dragEnd);
         document.removeEventListener('touchmove', elementDrag);
+        document.removeEventListener('pointerup', dragEnd);
+        document.removeEventListener('lostpointercapture', dragEnd);
         window.removeEventListener('blur', dragEnd);
         window.removeEventListener('mouseleave', dragEnd);
     }
 
     el.onmousedown = dragStart;
     el.ontouchstart = dragStart;
+    el.onpointerdown = dragStart;
 }
 // ==========================================
 // ROBLOX OAUTH & EXPORT ENGINE
