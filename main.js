@@ -946,28 +946,39 @@ function renderPreview() {
     updateSelectionPageOverlays();
 }
 
-// --- DRAG ENGINES ---
-// --- DRAG ENGINES ---
+// --- DRAG ENGINES (Desktop & Mobile Support) ---
 function makeCategoryDraggable(el, category) {
     let startX, startY;
-    el.onmousedown = function(e) {
+
+    function dragStart(e) {
         e.preventDefault();
-        startX = e.clientX; startY = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // Initialize exact coordinates for smoother sub-pixel accumulation
+        startX = clientX; 
+        startY = clientY;
+
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('mousemove', elementDrag);
+        document.addEventListener('touchend', dragEnd);
+        document.addEventListener('touchmove', elementDrag, { passive: false });
+
         const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
         items.forEach(img => {
             img._exactX = img._exactX !== undefined ? img._exactX : parseFloat(img.style.left);
             img._exactY = img._exactY !== undefined ? img._exactY : parseFloat(img.style.top);
         });
-    };
+    }
+
     function elementDrag(e) {
         e.preventDefault();
-        let dx = (e.clientX - startX) / 4; 
-        let dy = (e.clientY - startY) / 4;
-        startX = e.clientX; startY = e.clientY;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        let dx = (clientX - startX) / 4; 
+        let dy = (clientY - startY) / 4;
+        startX = clientX; 
+        startY = clientY;
         
         if (category === 'medals') {
             medalsOffsetX += dx; medalsOffsetY += dy;
@@ -979,38 +990,68 @@ function makeCategoryDraggable(el, category) {
         items.forEach(img => {
             img._exactX += dx;
             img._exactY += dy;
-            // Snap to strict integers to stop sub-pixel blurring
             img.style.left = Math.round(img._exactX) + 'px';
             img.style.top = Math.round(img._exactY) + 'px';
         });
     }
-    function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+
+    function dragEnd() {
+        document.removeEventListener('mouseup', dragEnd);
+        document.removeEventListener('mousemove', elementDrag);
+        document.removeEventListener('touchend', dragEnd);
+        document.removeEventListener('touchmove', elementDrag);
+    }
+
+    el.onmousedown = dragStart;
+    el.ontouchstart = dragStart;
 }
 
 function makeIndividualDraggable(el, awardObj) {
     let startX, startY;
-    el.onmousedown = function(e) {
-        e.preventDefault(); e.stopPropagation();
-        startX = e.clientX; startY = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
-    };
+
+    function dragStart(e) {
+        e.preventDefault(); 
+        e.stopPropagation();
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        startX = clientX; 
+        startY = clientY;
+
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('mousemove', elementDrag);
+        document.addEventListener('touchend', dragEnd);
+        document.addEventListener('touchmove', elementDrag, { passive: false });
+    }
+
     function elementDrag(e) {
         e.preventDefault();
-        let dx = (e.clientX - startX) / 4; 
-        let dy = (e.clientY - startY) / 4;
-        startX = e.clientX; startY = e.clientY;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        let dx = (clientX - startX) / 4; 
+        let dy = (clientY - startY) / 4;
+        startX = clientX; 
+        startY = clientY;
         
         awardObj.x = (awardObj.x !== null ? awardObj.x : parseFloat(el.style.left)) + dx;
         awardObj.y = (awardObj.y !== null ? awardObj.y : parseFloat(el.style.top)) + dy;
         
-        // Snap to strict integers to stop sub-pixel blurring
         el.style.left = Math.round(awardObj.x) + 'px';
         el.style.top = Math.round(awardObj.y) + 'px';
     }
-    function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
-}
 
+    function dragEnd() {
+        document.removeEventListener('mouseup', dragEnd);
+        document.removeEventListener('mousemove', elementDrag);
+        document.removeEventListener('touchend', dragEnd);
+        document.removeEventListener('touchmove', elementDrag);
+    }
+
+    el.onmousedown = dragStart;
+    el.ontouchstart = dragStart;
+}
 // ==========================================
 // ROBLOX OAUTH & EXPORT ENGINE
 // ==========================================
