@@ -46,6 +46,7 @@
     <header class="top-toolbar">
         <div class="logo">Award Rack Builder</div>
         <div class="global-controls">
+            <button class="tool-btn" onclick="openHelpModal()" style="background-color: #333; color: #fff;">Help</button>
             <button id="btn-lock-medals" class="tool-btn" onclick="toggleMedalRackLock()">Lock Medal Rack Positions</button>
             <button id="btn-lock-ribbons" class="tool-btn" onclick="toggleRibbonRackLock()">Lock Ribbon Rack Positions</button>
             <button id="btn-lock-citations" class="tool-btn" onclick="toggleCitationRackLock()">Lock Citation Rack Positions</button>
@@ -125,21 +126,40 @@
 </div>
 
     <!-- EXPORT MODAL -->
-    <div id="export-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Export Options</h3>
-                <button class="close-btn" onclick="closeExportModal()">✖</button>
-            </div>
-            <div class="modal-body">
-                <p>How would you like to save your custom uniform?</p>
-                <div class="modal-actions">
-                    <button class="tool-btn" onclick="executeDownload()">⬇️ Download Image to Computer</button>
-                    <button class="export-btn" onclick="executeRobloxUpload()">☁️ Upload to Roblox</button>
-                </div>
+<div id="export-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Export Options</h3>
+            <button class="close-btn" onclick="closeExportModal()">✖</button>
+        </div>
+    <div class="modal-body">
+        <p>How would you like to save your custom uniform?</p>
+            <div class="modal-actions">
+                <button class="tool-btn" onclick="executeDownload()">⬇️ Download Image to Computer</button>
+                <button class="export-btn" onclick="executeRobloxUpload()">☁️ Upload to Roblox</button>
             </div>
         </div>
     </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="help-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="width: 450px;">
+        <div class="modal-header">
+            <h3>Award Rack Builder - Help</h3>
+            <button class="close-btn" onclick="closeHelpModal()">✖</button>
+        </div>
+        <div class="modal-body" style="text-align: left; max-height: 60vh; overflow-y: auto;">
+            <p><strong>How to use the builder:</strong></p>
+            <ul style="color: #ccc; font-size: 13px; padding-left: 20px; margin-bottom: 15px; line-height: 1.4;">
+                <li><strong>How do I Move around the Awards Bar?</strong> The Bottom Bar is Bound to the Vertical Scroll, to Scroll Left/Right, you Scroll Up/Down</li>
+                <li><strong>Adding / Removing Awards: </strong> On Computer, you can either Click on an awards Button, or you can Drag the button onto the Canvas, to remove Individual awards, you can Double click the award on the canvas or Click its red box on the bottom bar</li>
+                <li><strong>Positioning Racks:</strong> Citation, Ribbon, & Medal Racks are all Locked together into their racks by default, when locked, you can move the whole rack | When unlocked, you can move around individual awards</li>
+                <li><strong>Exporting:</strong> Use the Export Decal button to download your Racks or Upload it straight to Roblox.</li>
+            </ul>
+        </div>
+    </div>
+</div>
 
     <!-- Upload Success & Action Modal -->
 <div id="success-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 3000; justify-content: center; align-items: center;">
