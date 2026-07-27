@@ -6064,18 +6064,6 @@
             "citationImage": null
         },
         {
-            "id": "mil_6ood_6",
-            "branch": "Military",
-            "folder": "",
-            "subFolder": "",
-            "name": "6. Order of Danshov",
-            "precedence": 6,
-            "medalImage": "MedalDatabase/Assets/Medals/Military/6. Order of Danshov_Medal.png",
-            "ribbonImage": null,
-            "badgeImage": null,
-            "citationImage": null
-        },
-        {
             "id": "mil_5oos_5",
             "branch": "Military",
             "folder": "",
@@ -6805,6 +6793,18 @@
             "citationImage": null
         },
         {
+            "id": "mis_999dv_999",
+            "branch": "Misc",
+            "folder": "",
+            "subFolder": "",
+            "name": "DistEagle Vet",
+            "precedence": 999,
+            "medalImage": null,
+            "ribbonImage": null,
+            "badgeImage": "MedalDatabase/Assets/Badges/Misc/DistEagle Vet_Badge.png",
+            "citationImage": null
+        },
+        {
             "id": "mis_999v_999",
             "branch": "Misc",
             "folder": "",
@@ -7066,6 +7066,54 @@
             "medalImage": null,
             "ribbonImage": null,
             "badgeImage": "MedalDatabase/Assets/Badges/Military/Federation's Pin of Creative Excellence_Badge.png",
+            "citationImage": null
+        },
+        {
+            "id": "mil_999ca_999",
+            "branch": "Military",
+            "folder": "",
+            "subFolder": "",
+            "name": "Commander's Accolade_ButtonRibbon",
+            "precedence": 999,
+            "medalImage": null,
+            "ribbonImage": null,
+            "badgeImage": "MedalDatabase/Assets/Badges/Military/Commander's Accolade_ButtonRibbon_Badge.png",
+            "citationImage": null
+        },
+        {
+            "id": "mil_999ca_999",
+            "branch": "Military",
+            "folder": "",
+            "subFolder": "",
+            "name": "Commander's Accolade_NoRibbar",
+            "precedence": 999,
+            "medalImage": null,
+            "ribbonImage": null,
+            "badgeImage": "MedalDatabase/Assets/Badges/Military/Commander's Accolade_NoRibbar_Badge.png",
+            "citationImage": null
+        },
+        {
+            "id": "mil_999ood_999",
+            "branch": "Military",
+            "folder": "",
+            "subFolder": "",
+            "name": "Order Of Danshov_ButtonRibbon",
+            "precedence": 999,
+            "medalImage": null,
+            "ribbonImage": null,
+            "badgeImage": "MedalDatabase/Assets/Badges/Military/Order Of Danshov_ButtonRibbon_Badge.png",
+            "citationImage": null
+        },
+        {
+            "id": "mil_999ood_999",
+            "branch": "Military",
+            "folder": "",
+            "subFolder": "",
+            "name": "Order Of Danshov",
+            "precedence": 999,
+            "medalImage": null,
+            "ribbonImage": null,
+            "badgeImage": "MedalDatabase/Assets/Badges/Military/Order Of Danshov_Badge.png",
             "citationImage": null
         },
         {
