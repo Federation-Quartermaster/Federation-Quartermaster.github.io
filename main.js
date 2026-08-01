@@ -835,28 +835,46 @@ function renderPreview() {
         return a.precedence - b.precedence;
     });
 
-    const hasRibbons = standardRibbons.length > 0;
-    const hasMedals = medals.length > 0;
-
-    const LEFT_POCKET_CENTER_X = 26;  
+    const LEFT_POCKET_CENTER_X = 26;   
     const RIGHT_POCKET_CENTER_X = 102; 
 
     const RED_LINE_Y = 33;    
     const GREEN_LINE_Y = 35;  
     const BLUE_LINE_Y = 35;   
 
+    const hasRibbons = standardRibbons.length > 0;
+    const hasMedals = medals.length > 0;
+    const hasCitations = citations.length > 0;
+
+    // Check if all 3 award types are present
+    const isAllThreePresent = hasRibbons && hasMedals && hasCitations;
+
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
 
     const MEDAL_LINE_Y = hasRibbons ? GREEN_LINE_Y : BLUE_LINE_Y;
     const MEDAL_CENTER_X = hasRibbons ? LEFT_POCKET_CENTER_X : RIGHT_POCKET_CENTER_X;
+
+    // Citations join the Right Pocket ONLY when all 3 types are active
+    const CITATION_CENTER_X = isAllThreePresent ? RIGHT_POCKET_CENTER_X : LEFT_POCKET_CENTER_X;
+
+    // Calculate total rows for citations and ribbons to stack correctly
+    const citationHeight = 4;
+    const ribbonHeight = 4;
     
-    const CITATION_LINE_Y = (hasRibbons && hasMedals) ? RED_LINE_Y : GREEN_LINE_Y;
-    const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
+    const citationTotalRows = hasCitations ? Math.ceil(citations.length / 4) : 0;
+    const citationRackHeight = citationTotalRows * citationHeight;
+
+    // If all 3 are present, ribbons shift up to make space for citations underneath
+    const ribbonYShift = isAllThreePresent ? citationRackHeight : 0;
+    
+    // Standalone citation baseline when not merged onto ribbon rack
+    const CITATION_LINE_Y = isAllThreePresent 
+        ? RIBBON_LINE_Y 
+        : ((hasRibbons && hasMedals) ? RED_LINE_Y : GREEN_LINE_Y);
 
    // --- RENDER STANDARD RIBBONS ---
     const ribbonWidth = 16;
-    const ribbonHeight = 4;
     standardRibbons.forEach((ribbon, index) => {
         const img = document.createElement('img');
         img.src = ribbon.activeImage;
@@ -868,7 +886,8 @@ function renderPreview() {
         const baseLeft = startX + (col * ribbonWidth);
         const yOffset = (totalRows - 1 - row) * ribbonHeight;
         
-        const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset + 1; 
+        // Apply ribbonYShift to push ribbons up above citations when merged
+        const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset - ribbonYShift + 1; 
         
         img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
         img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
@@ -884,10 +903,8 @@ function renderPreview() {
         img.ondblclick = () => removeFromRack(ribbon.id);
         ribbonsContainer.appendChild(img);
     });
-
    // --- RENDER CITATIONS ---
     const citationWidth = 12;
-    const citationHeight = 4;
     citations.forEach((citation, index) => {
         const img = document.createElement('img');
         img.src = citation.activeImage;
@@ -898,13 +915,14 @@ function renderPreview() {
         const startX = CITATION_CENTER_X - (rowWidth / 2);
         const baseLeft = startX + (col * citationWidth);
         const yOffset = (totalRows - 1 - row) * citationHeight;
+        
         const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
         
         img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
         img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
         img.style.width = `${citationWidth}px`; 
         img.style.height = `${citationHeight}px`; 
-        img.style.zIndex = 500 - index;
+        img.style.zIndex = 400 - index;
         
         if (!isCitationRackLocked) {
             makeCategoryDraggable(img, 'ribbons');
@@ -914,7 +932,6 @@ function renderPreview() {
         img.ondblclick = () => removeFromRack(citation.id);
         citationsContainer.appendChild(img);
     });
-
     // --- RENDER MEDALS ---
     const medalSpacing = 6; 
     const ribbonWidthOnly = 16; 
