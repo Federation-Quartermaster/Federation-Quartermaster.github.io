@@ -799,39 +799,43 @@ function renderPreview() {
     const hasMedals = medals.length > 0;
     const hasCitations = citations.length > 0;
 
-    // Viewport relative pocket coordinates
-    const LEFT_POCKET_X = 26;   // Viewer's Left (Wearer's Right Pocket)
-    const RIGHT_POCKET_X = 102; // Viewer's Right (Wearer's Left Pocket)
-    const BASELINE_Y = 35;       // Standard pocket seam baseline
+    // Viewport relative pocket coordinates (from Viewer's perspective)
+    // NOTE: Wearer's Left = over the heart (Viewer's Right)
+    const WEARERS_RIGHT_X = 26;   // Viewer's Left 
+    const WEARERS_LEFT_X = 102;   // Viewer's Right 
+    const BASELINE_Y = 35;        // Standard pocket seam baseline
 
-    // --- POCKET MAPPING ENGINE (MCO 1020.34H) ---
-    let medalPocketX = RIGHT_POCKET_X;
-    let ribbonPocketX = RIGHT_POCKET_X;
-    let citationPocketX = LEFT_POCKET_X;
+    // --- POCKET MAPPING ENGINE (MCO 1020.34H CORRECTED) ---
+    // Default mapping: everything defaults to the Wearer's Left (Heart) unless bumped.
+    let medalPocketX = WEARERS_LEFT_X; 
+    let ribbonPocketX = WEARERS_LEFT_X; 
+    let citationPocketX = WEARERS_RIGHT_X; // Citations default to Wearer's right if standalone 
 
-    const isAllThreePresent = hasRibbons && hasMedals && hasCitations;
-
-    if (hasMedals && (hasRibbons || hasCitations)) {
-        medalPocketX = LEFT_POCKET_X;
-        ribbonPocketX = RIGHT_POCKET_X;
-        citationPocketX = isAllThreePresent ? RIGHT_POCKET_X : LEFT_POCKET_X;
-    } else if (hasRibbons && hasCitations && !hasMedals) {
-        ribbonPocketX = RIGHT_POCKET_X;
-        citationPocketX = LEFT_POCKET_X;
-    } else if (hasMedals && !hasRibbons && !hasCitations) {
-        medalPocketX = RIGHT_POCKET_X;
+    if (hasMedals) {
+        // Medals ALWAYS take priority on the Wearer's Left (102)
+        medalPocketX = WEARERS_LEFT_X;
+        // Ribbons/Citations get bumped to the Wearer's Right (26)
+        if (hasRibbons) ribbonPocketX = WEARERS_RIGHT_X;
+        if (hasCitations) citationPocketX = WEARERS_RIGHT_X;
+    } else if (hasRibbons && hasCitations) {
+        // No medals: Ribbons take the Wearer's Left (102), Citations take the Wearer's Right (26)
+        ribbonPocketX = WEARERS_LEFT_X;
+        citationPocketX = WEARERS_RIGHT_X;
     }
+
+    // A merged continuous rack is needed ONLY when Ribbons and Citations share the same pocket
+    const isMergedRack = (hasRibbons && hasCitations && ribbonPocketX === citationPocketX);
 
     // =========================================================================
     // 1. RENDER RIBBONS & CITATIONS (OPTION 3 CONTINUOUS PACKING)
     // =========================================================================
-    if (isAllThreePresent) {
+    if (isMergedRack) {
         const unifiedRack = [
             ...standardRibbons.map(r => ({ ...r, isCitationItem: false })),
             ...citations.map(c => ({ ...c, isCitationItem: true }))
         ];
 
-        const ROW_HEIGHT = 14; 
+        const ROW_HEIGHT = 4; // Restored to native 4px height
         const TARGET_ROW_WIDTH = 48; // Max width to trigger new line 
 
         let rows = [];
@@ -864,11 +868,11 @@ function renderPreview() {
             const displayRow = (totalRows - 1) - rowIndex; 
             const rowWidth = rowItems.reduce((sum, item) => sum + item.width, 0);
 
-            // Center row horizontally over right pocket baseline (X=102)
-            const startX = RIGHT_POCKET_X - (rowWidth / 2);
+            // Dynamically anchor to whichever pocket they share (will be Wearer's Right / 26)
+            const startX = ribbonPocketX - (rowWidth / 2);
             let currentX = startX;
 
-            const yOffset = displayRow * (ROW_HEIGHT - 1); // Slight vertical bleed
+            const yOffset = displayRow * ROW_HEIGHT; 
             const baseTop = BASELINE_Y - ROW_HEIGHT - yOffset + 1;
 
             rowItems.forEach((item, itemIndex) => {
@@ -907,7 +911,7 @@ function renderPreview() {
         // Render Standard Ribbons
         if (hasRibbons) {
             const ribbonWidth = 16;
-            const ribbonHeight = 14; 
+            const ribbonHeight = 4; // Restored to native 4px height
 
             standardRibbons.forEach((ribbon, index) => {
                 const img = document.createElement('img');
@@ -919,7 +923,7 @@ function renderPreview() {
                 const startX = ribbonPocketX - (rowWidth / 2);
                 const baseLeft = startX + (col * ribbonWidth);
 
-                const yOffset = row * (ribbonHeight - 1);
+                const yOffset = row * ribbonHeight;
                 const baseTop = BASELINE_Y - ribbonHeight - yOffset + 1;
 
                 img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px';
@@ -941,7 +945,7 @@ function renderPreview() {
         // Render Citations
         if (hasCitations) {
             const citationWidth = 12;
-            const citationHeight = 14; 
+            const citationHeight = 4; // Restored to native 4px height
 
             citations.forEach((citation, index) => {
                 const img = document.createElement('img');
@@ -953,7 +957,7 @@ function renderPreview() {
                 const startX = citationPocketX - (rowWidth / 2);
                 const baseLeft = startX + (col * citationWidth);
 
-                const yOffset = row * (citationHeight - 1);
+                const yOffset = row * citationHeight;
                 const baseTop = BASELINE_Y - citationHeight - yOffset + 1;
 
                 img.style.left = Math.round(baseLeft + citationsOffsetX) + 'px';
@@ -974,10 +978,11 @@ function renderPreview() {
     }
 
     // =========================================================================
-    // 2. RENDER MEDALS (DYNAMIC 48px BOUNDARY SQUISH)
+    // 2. RENDER MEDALS (DYNAMIC 48px PLANCHET BOUNDARY SQUISH)
     // =========================================================================
     if (hasMedals) {
-        const MAX_RACK_WIDTH = 48; // Maximum width for the medal rack
+        const MAX_RACK_WIDTH = 48; // Max limit for the entire row
+        const MEDAL_PLANCHET_WIDTH = 26; // Safe average width of the widest metal parts
         const ribbonWidthOnly = 16; 
 
         medals.forEach((medal, index) => {
@@ -987,23 +992,24 @@ function renderPreview() {
             
             const { row, col, itemsInThisRow } = getMedalLayout(index, medals.length, 6);
             
-            // Dynamic spacing: Default 16px (edge to edge) for 1-3 medals, 
-            // but scales down mathematically to squish 4-6 medals inside 48px
+            // Dynamic Spacing: The bounding box uses the wider metal planchet width 
+            // so the outer edges of the metals NEVER exceed 48px total.
             let medalSpacing = 16; 
             if (itemsInThisRow > 1) {
-                const maxAvailableSpacing = (MAX_RACK_WIDTH - ribbonWidthOnly) / (itemsInThisRow - 1);
+                const maxAvailableSpacing = (MAX_RACK_WIDTH - MEDAL_PLANCHET_WIDTH) / (itemsInThisRow - 1);
                 medalSpacing = Math.min(16, maxAvailableSpacing);
             }
 
-            const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
+            // Total center-to-center span of the medals in this specific row
+            const rowCenterSpan = (itemsInThisRow - 1) * medalSpacing;
             
-            let startX = medalPocketX - (rowWidth / 2);
-            let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
+            // Start the row mathematically centered perfectly over the pocket seam
+            const startX = medalPocketX - (rowCenterSpan / 2);
+            let slotCenterX = startX + (col * medalSpacing) + medalsOffsetX;
             
             img.style.left = Math.round(slotCenterX) + 'px';
             img.style.transform = `translateX(-50%)`;
             
-            // Standard vertical offset between medal rows
             const yOffset = row * 8; 
             const baseTop = BASELINE_Y - yOffset + medalsOffsetY;
             img.style.top = Math.round(baseTop) + 'px';
