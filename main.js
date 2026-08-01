@@ -784,11 +784,16 @@ function renderPreview() {
     // =========================================================================
     // 1. RENDER RIBBONS & CITATIONS
     // =========================================================================
+    // =========================================================================
+    // 1. RENDER RIBBONS & CITATIONS
+    // =========================================================================
     if (isAllThreePresent) {
         // --- MERGED CONTINUOUS RACK (RIGHT POCKET) ---
+        // Precedence Order: Ribbons on top (highest precedence), Citations on bottom (lowest)
+        // Array order: [Highest Precedence Ribbons ... Lowest Precedence Citations]
         const unifiedRack = [
-            ...citations.map(c => ({ ...c, isCitationItem: true })),
-            ...standardRibbons.map(r => ({ ...r, isCitationItem: false }))
+            ...standardRibbons.map(r => ({ ...r, isCitationItem: false })),
+            ...citations.map(c => ({ ...c, isCitationItem: true }))
         ];
 
         const MAX_ROW_WIDTH = 48; // 3 ribbons (48px) or 4 citations (48px)
@@ -797,6 +802,7 @@ function renderPreview() {
         let rows = [[]];
         let currentRowWidth = 0;
 
+        // Pack items into rows top-to-bottom first
         unifiedRack.forEach(item => {
             const itemWidth = item.isCitationItem ? 12 : 16;
             if (currentRowWidth + itemWidth > MAX_ROW_WIDTH) {
@@ -807,12 +813,17 @@ function renderPreview() {
             currentRowWidth += itemWidth;
         });
 
-        // Row 0 rests on BASELINE_Y; rows build UPWARDS
-        rows.forEach((rowItems, rowIndex) => {
+        // REVERSE rows array so Row 0 (rendered at bottom baseline Y=35) gets the LOWEST precedence items,
+        // and the last row (rendered at the TOP) gets the HIGHEST precedence items!
+        const totalRows = rows.length;
+        const reversedRows = [...rows].reverse();
+
+        reversedRows.forEach((rowItems, rowIndex) => {
             const rowWidth = rowItems.reduce((sum, item) => sum + item.width, 0);
             const startX = RIGHT_POCKET_X - (rowWidth / 2);
             let currentX = startX;
 
+            // rowIndex 0 = Bottom row resting at BASELINE_Y
             const yOffset = rowIndex * ROW_HEIGHT;
             const baseTop = BASELINE_Y - ROW_HEIGHT - yOffset + 1;
 
@@ -853,32 +864,46 @@ function renderPreview() {
         if (hasRibbons) {
             const ribbonWidth = 16;
             const ribbonHeight = 4;
-            standardRibbons.forEach((ribbon, index) => {
-                const img = document.createElement('img');
-                img.src = ribbon.activeImage;
-                img.className = 'rack-item ribbon-item';
-                
-                const { row, col, itemsInThisRow } = getGridLayout(index, standardRibbons.length, 3);
-                const rowWidth = itemsInThisRow * ribbonWidth;
-                const startX = ribbonPocketX - (rowWidth / 2); 
-                const baseLeft = startX + (col * ribbonWidth);
-                
-                const yOffset = row * ribbonHeight;
-                const baseTop = BASELINE_Y - ribbonHeight - yOffset + 1; 
-                
-                img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
-                img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
-                img.style.width = `${ribbonWidth}px`; 
-                img.style.height = `${ribbonHeight}px`; 
-                img.style.zIndex = 500 - index;
-                
-                if (!isRibbonRackLocked) {
-                    makeCategoryDraggable(img, 'ribbons');
-                } else {
-                    makeIndividualDraggable(img, ribbon);
-                }
-                img.ondblclick = () => removeFromRack(ribbon.id);
-                ribbonsContainer.appendChild(img);
+            
+            // Chunk ribbons into 3-across rows
+            let rows = [];
+            for (let i = 0; i < standardRibbons.length; i += 3) {
+                rows.push(standardRibbons.slice(i, i + 3));
+            }
+
+            // Reverse row order so highest precedence row sits at the top
+            const totalRows = rows.length;
+            const reversedRows = [...rows].reverse();
+
+            reversedRows.forEach((rowItems, rowIndex) => {
+                const rowWidth = rowItems.length * ribbonWidth;
+                const startX = ribbonPocketX - (rowWidth / 2);
+
+                // rowIndex 0 = Bottom row at BASELINE_Y
+                const yOffset = rowIndex * ribbonHeight;
+                const baseTop = BASELINE_Y - ribbonHeight - yOffset + 1;
+
+                rowItems.forEach((ribbon, col) => {
+                    const img = document.createElement('img');
+                    img.src = ribbon.activeImage;
+                    img.className = 'rack-item ribbon-item';
+
+                    const baseLeft = startX + (col * ribbonWidth);
+
+                    img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px';
+                    img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
+                    img.style.width = `${ribbonWidth}px`;
+                    img.style.height = `${ribbonHeight}px`;
+                    img.style.zIndex = 500 - (rowIndex * 10 + col);
+
+                    if (!isRibbonRackLocked) {
+                        makeCategoryDraggable(img, 'ribbons');
+                    } else {
+                        makeIndividualDraggable(img, ribbon);
+                    }
+                    img.ondblclick = () => removeFromRack(ribbon.id);
+                    ribbonsContainer.appendChild(img);
+                });
             });
         }
 
@@ -886,36 +911,46 @@ function renderPreview() {
         if (hasCitations) {
             const citationWidth = 12;
             const citationHeight = 4;
-            citations.forEach((citation, index) => {
-                const img = document.createElement('img');
-                img.src = citation.activeImage;
-                img.className = 'rack-item ribbon-item';
-                
-                const { row, col, itemsInThisRow } = getGridLayout(index, citations.length, 4);
-                const rowWidth = itemsInThisRow * citationWidth;
+
+            // Chunk citations into 4-across rows
+            let rows = [];
+            for (let i = 0; i < citations.length; i += 4) {
+                rows.push(citations.slice(i, i + 4));
+            }
+
+            const reversedRows = [...rows].reverse();
+
+            reversedRows.forEach((rowItems, rowIndex) => {
+                const rowWidth = rowItems.length * citationWidth;
                 const startX = citationPocketX - (rowWidth / 2);
-                const baseLeft = startX + (col * citationWidth);
-                
-                const yOffset = row * citationHeight;
+
+                const yOffset = rowIndex * citationHeight;
                 const baseTop = BASELINE_Y - citationHeight - yOffset + 1;
-                
-                img.style.left = Math.round(baseLeft + citationsOffsetX) + 'px'; 
-                img.style.top = Math.round(baseTop + citationsOffsetY) + 'px';
-                img.style.width = `${citationWidth}px`; 
-                img.style.height = `${citationHeight}px`; 
-                img.style.zIndex = 500 - index;
-                
-                if (!isCitationRackLocked) {
-                    makeCategoryDraggable(img, 'citations');
-                } else {
-                    makeIndividualDraggable(img, citation);
-                }
-                img.ondblclick = () => removeFromRack(citation.id);
-                citationsContainer.appendChild(img);
+
+                rowItems.forEach((citation, col) => {
+                    const img = document.createElement('img');
+                    img.src = citation.activeImage;
+                    img.className = 'rack-item ribbon-item';
+
+                    const baseLeft = startX + (col * citationWidth);
+
+                    img.style.left = Math.round(baseLeft + citationsOffsetX) + 'px';
+                    img.style.top = Math.round(baseTop + citationsOffsetY) + 'px';
+                    img.style.width = `${citationWidth}px`;
+                    img.style.height = `${citationHeight}px`;
+                    img.style.zIndex = 500 - (rowIndex * 10 + col);
+
+                    if (!isCitationRackLocked) {
+                        makeCategoryDraggable(img, 'citations');
+                    } else {
+                        makeIndividualDraggable(img, citation);
+                    }
+                    img.ondblclick = () => removeFromRack(citation.id);
+                    citationsContainer.appendChild(img);
+                });
             });
         }
     }
-
     // =========================================================================
     // 2. RENDER MEDALS
     // =========================================================================
