@@ -823,42 +823,52 @@ function renderPreview() {
     }
 
     // =========================================================================
-    // 1. RENDER RIBBONS & CITATIONS
+    // 1. RENDER RIBBONS & CITATIONS (OPTION 3 CONTINUOUS PACKING)
     // =========================================================================
     if (isAllThreePresent) {
-        // --- MERGED CONTINUOUS RACK (RIGHT POCKET) ---
         const unifiedRack = [
             ...standardRibbons.map(r => ({ ...r, isCitationItem: false })),
             ...citations.map(c => ({ ...c, isCitationItem: true }))
         ];
 
-        const ribbonWidth = 16;
-        const citationWidth = 12;
-        const ROW_HEIGHT = 4;
-        const MAX_WIDTH = 48;
+        const ROW_HEIGHT = 14; 
+        const TARGET_ROW_WIDTH = 48; // Max width to trigger new line 
 
-        let rows = [[]];
+        let rows = [];
+        let currentRow = [];
         let currentWidth = 0;
 
+        // Pack items top-to-bottom sequentially based on width
         unifiedRack.forEach(item => {
-            const w = item.isCitationItem ? citationWidth : ribbonWidth;
-            if (currentWidth + w > MAX_WIDTH) {
-                rows.push([]);
+            const itemWidth = item.isCitationItem ? 12 : 16;
+            
+            // If item exceeds max row width, push current row and start a new one
+            if (currentWidth + itemWidth > TARGET_ROW_WIDTH && currentRow.length > 0) {
+                rows.push(currentRow);
+                currentRow = [];
                 currentWidth = 0;
             }
-            rows[rows.length - 1].push({ ...item, width: w });
-            currentWidth += w;
+
+            currentRow.push({ ...item, width: itemWidth });
+            currentWidth += itemWidth;
         });
+
+        if (currentRow.length > 0) {
+            rows.push(currentRow);
+        }
 
         const totalRows = rows.length;
 
         rows.forEach((rowItems, rowIndex) => {
+            // Reverse Y indexing so row 0 sits on top, and bottom row rests on baseline (Y=35)
             const displayRow = (totalRows - 1) - rowIndex; 
-            const rowWidth = rowItems.reduce((sum, i) => sum + i.width, 0);
-            const startX = RIGHT_POCKET_X - (rowWidth / 2);
+            const rowWidth = rowItems.reduce((sum, item) => sum + item.width, 0);
 
+            // Center row horizontally over right pocket baseline (X=102)
+            const startX = RIGHT_POCKET_X - (rowWidth / 2);
             let currentX = startX;
-            const yOffset = displayRow * ROW_HEIGHT;
+
+            const yOffset = displayRow * (ROW_HEIGHT - 1); // Slight vertical bleed
             const baseTop = BASELINE_Y - ROW_HEIGHT - yOffset + 1;
 
             rowItems.forEach((item, itemIndex) => {
@@ -870,7 +880,7 @@ function renderPreview() {
                 img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
                 img.style.width = `${item.width}px`;
                 img.style.height = `${ROW_HEIGHT}px`;
-                img.style.zIndex = 500 - (displayRow * 10 + itemIndex);
+                img.style.zIndex = 500 - (rowIndex * 10 + itemIndex);
 
                 const isLocked = item.isCitationItem ? isCitationRackLocked : isRibbonRackLocked;
                 if (!isLocked) {
@@ -897,7 +907,7 @@ function renderPreview() {
         // Render Standard Ribbons
         if (hasRibbons) {
             const ribbonWidth = 16;
-            const ribbonHeight = 4;
+            const ribbonHeight = 14; 
 
             standardRibbons.forEach((ribbon, index) => {
                 const img = document.createElement('img');
@@ -909,7 +919,7 @@ function renderPreview() {
                 const startX = ribbonPocketX - (rowWidth / 2);
                 const baseLeft = startX + (col * ribbonWidth);
 
-                const yOffset = row * ribbonHeight;
+                const yOffset = row * (ribbonHeight - 1);
                 const baseTop = BASELINE_Y - ribbonHeight - yOffset + 1;
 
                 img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px';
@@ -931,7 +941,7 @@ function renderPreview() {
         // Render Citations
         if (hasCitations) {
             const citationWidth = 12;
-            const citationHeight = 4;
+            const citationHeight = 14; 
 
             citations.forEach((citation, index) => {
                 const img = document.createElement('img');
@@ -943,7 +953,7 @@ function renderPreview() {
                 const startX = citationPocketX - (rowWidth / 2);
                 const baseLeft = startX + (col * citationWidth);
 
-                const yOffset = row * citationHeight;
+                const yOffset = row * (citationHeight - 1);
                 const baseTop = BASELINE_Y - citationHeight - yOffset + 1;
 
                 img.style.left = Math.round(baseLeft + citationsOffsetX) + 'px';
@@ -964,10 +974,10 @@ function renderPreview() {
     }
 
     // =========================================================================
-    // 2. RENDER MEDALS
+    // 2. RENDER MEDALS (DYNAMIC 48px BOUNDARY SQUISH)
     // =========================================================================
     if (hasMedals) {
-        const medalSpacing = 8; 
+        const MAX_RACK_WIDTH = 48; // Maximum width for the medal rack
         const ribbonWidthOnly = 16; 
 
         medals.forEach((medal, index) => {
@@ -976,6 +986,15 @@ function renderPreview() {
             img.className = 'rack-item medal-item';
             
             const { row, col, itemsInThisRow } = getMedalLayout(index, medals.length, 6);
+            
+            // Dynamic spacing: Default 16px (edge to edge) for 1-3 medals, 
+            // but scales down mathematically to squish 4-6 medals inside 48px
+            let medalSpacing = 16; 
+            if (itemsInThisRow > 1) {
+                const maxAvailableSpacing = (MAX_RACK_WIDTH - ribbonWidthOnly) / (itemsInThisRow - 1);
+                medalSpacing = Math.min(16, maxAvailableSpacing);
+            }
+
             const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
             
             let startX = medalPocketX - (rowWidth / 2);
@@ -984,7 +1003,8 @@ function renderPreview() {
             img.style.left = Math.round(slotCenterX) + 'px';
             img.style.transform = `translateX(-50%)`;
             
-            const yOffset = row * medalSpacing;
+            // Standard vertical offset between medal rows
+            const yOffset = row * 8; 
             const baseTop = BASELINE_Y - yOffset + medalsOffsetY;
             img.style.top = Math.round(baseTop) + 'px';
             
