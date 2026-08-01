@@ -43,22 +43,16 @@ function copyAssetIdToClipboard() {
 }
 
 function launchDiscordChannel() {
-    // Automatically copies the generated asset ID to the clipboard before opening Discord
     copyAssetIdToClipboard();
 
     const serverId = "1507771629218824202"; 
     const channelId = "1527937241459069068";
     
-    // Deep link protocol to open the native desktop/mobile app
     const appUrl = `discord://discord.com/channels/${serverId}/${channelId}`;
-    
-    // Standard web URL backup
     const webUrl = `https://discord.com/channels/${serverId}/${channelId}`;
     
-    // Try opening the native app
     window.location.href = appUrl;
     
-    // Fallback: If the app doesn't open within 1.5 seconds, open the browser tab
     setTimeout(() => {
         window.open(webUrl, '_blank');
     }, 1500);
@@ -133,6 +127,7 @@ function unifyAwardsData(data) {
 
     return Object.values(unified);
 }
+
 // --- HELP MODAL HELPERS ---
 function openHelpModal() {
     document.getElementById('help-modal').style.display = 'flex';
@@ -142,8 +137,7 @@ function closeHelpModal() {
     document.getElementById('help-modal').style.display = 'none';
 }
 
-// --- EXPLORER SCROLL & DRAG SYSTEM (Bulletproof State Release) ---
-// --- EXPLORER SCROLL & DRAG SYSTEM (Global Pointer & Focus Release) ---
+// --- EXPLORER SCROLL & DRAG SYSTEM ---
 function initExplorerScrolling() {
     const container = document.getElementById('bottom-explorer');
     
@@ -158,7 +152,6 @@ function initExplorerScrolling() {
     let hasMoved = false;
 
     container.addEventListener('pointerdown', (e) => {
-        // Ignore select dropdowns and right-clicks
         if (e.target.tagName.toLowerCase() === 'select' || (e.button && e.button !== 0)) return;
         
         isDown = true;
@@ -169,21 +162,14 @@ function initExplorerScrolling() {
 
     const forceRelease = () => {
         isDown = false;
-        // We purposefully DO NOT reset hasMoved here. 
-        // If we did, the click event that fires immediately after release 
-        // wouldn't know to cancel itself, causing accidental card selections.
     };
 
-    // 1. Make release listeners global so leaving the element doesn't break the drag
-    // 2. Add 'blur' for your LostFocus check
-    // 3. Add 'dragend' to catch native HTML5 drops onto the canvas
     window.addEventListener('pointerup', forceRelease);
     window.addEventListener('pointercancel', forceRelease);
     window.addEventListener('mouseleave', forceRelease);
     window.addEventListener('blur', forceRelease); 
     window.addEventListener('dragend', forceRelease); 
 
-    // Make the move listener global so the scroll doesn't stutter if the cursor leaves the bar
     window.addEventListener('pointermove', (e) => {
         if (!isDown) return;
         
@@ -203,10 +189,11 @@ function initExplorerScrolling() {
         if (hasMoved) {
             e.preventDefault();
             e.stopPropagation();
-            hasMoved = false; // Reset ONLY after successfully blocking the accidental click
+            hasMoved = false;
         }
     }, true);
 }
+
 // --- DYNAMIC BOTTOM BAR NAVIGATION ---
 function buildExplorer() {
     renderBottomBar();
@@ -258,7 +245,6 @@ function renderBottomBar() {
         return;
     }
 
-    // Special category view for saved Access Badges
     if (navPath.length === 1 && navPath[0] === 'Access Badges') {
         const createBtn = document.createElement('button');
         createBtn.className = 'nav-btn';
@@ -332,7 +318,7 @@ function renderBottomBar() {
     }
 }
 
-// --- ISKRA ACCESS BADGE GENERATOR LOGIC (ROBLOX API) ---
+// --- ISKRA ACCESS BADGE GENERATOR LOGIC ---
 async function fetchAndLoadUserHeadshot() {
     const rawInput = document.getElementById('roblox-username-input').value.trim();
     const usernameInput = rawInput.toLowerCase(); 
@@ -601,7 +587,6 @@ function setupCanvasDropZone() {
     };
 }
 
-
 // --- UI / LOGIC STATE ---
 function updateTorsoBase() {
     const select = document.getElementById('torso-select');
@@ -735,63 +720,24 @@ function applySmartPadding(imgElement, baseTop) {
     }
 }
 
-// --- DYNAMIC RENDERING ALGORITHM ---
-function getGridLayout(index, totalItems, maxColumns) {
+// --- DYNAMIC RENDERING ALGORITHM HELPERS ---
+function getGridLayout(index, totalItems, maxColumns = 3) {
     const totalRows = Math.ceil(totalItems / maxColumns);
-    const topRowCount = (totalItems % maxColumns === 0) ? maxColumns : (totalItems % maxColumns);
-    let row, col, itemsInThisRow;
+    const row = Math.floor(index / maxColumns);
+    const col = index % maxColumns;
+    
+    const isTopRow = (row === totalRows - 1);
+    const remainder = totalItems % maxColumns;
+    const itemsInThisRow = isTopRow && (remainder !== 0) ? remainder : maxColumns;
 
-    if (index < topRowCount) {
-        row = 0; 
-        col = index;
-        itemsInThisRow = topRowCount;
-    } else {
-        const remainingIndex = index - topRowCount;
-        row = 1 + Math.floor(remainingIndex / maxColumns);
-        col = remainingIndex % maxColumns;
-        itemsInThisRow = maxColumns;
-    }
     return { row, col, itemsInThisRow, totalRows };
 }
 
-function getMedalRowCounts(total) {
-    if (total === 0) return [];
-    const maxPerRow = 6;
-    const numRows = Math.ceil(total / maxPerRow);
-    const baseCount = Math.floor(total / numRows);
-    const remainder = total % numRows;
-    
-    let rowCounts = [];
-    for (let i = 0; i < numRows; i++) {
-        if (i >= numRows - remainder) {
-            rowCounts.push(baseCount + 1);
-        } else {
-            rowCounts.push(baseCount);
-        }
-    }
-    return rowCounts;
+function getMedalLayout(index, totalItems, maxColumns = 3) {
+    return getGridLayout(index, totalItems, maxColumns);
 }
 
-function getMedalLayout(index, total) {
-    const rowCounts = getMedalRowCounts(total);
-    let currentIndex = 0;
-    let row = 0;
-    
-    for (let i = 0; i < rowCounts.length; i++) {
-        if (index < currentIndex + rowCounts[i]) {
-            row = i;
-            break;
-        }
-        currentIndex += rowCounts[i];
-    }
-    
-    const col = index - currentIndex;
-    const itemsInThisRow = rowCounts[row];
-    const totalRows = rowCounts.length;
-    
-    return { row, col, itemsInThisRow, totalRows };
-}
-
+// --- MAIN RENDER Preview ENGINE ---
 function renderPreview() {
     const ribbonsContainer = document.getElementById('ribbons-container');
     const citationsContainer = document.getElementById('citations-container');
@@ -805,100 +751,70 @@ function renderPreview() {
     const medals = selectedRack.filter(a => a.type === 'Medal');
     const badges = selectedRack.filter(a => a.type === 'Badge');
 
-    [standardRibbons, medals].forEach(arr => arr.sort((a, b) => {
-        const aDepth = (a.folder ? 1 : 0) + (a.subFolder ? 1 : 0);
-        const bDepth = (b.folder ? 1 : 0) + (b.subFolder ? 1 : 0);
-        
-        if (aDepth !== bDepth) return aDepth - bDepth;
-        if (a.folder !== b.folder) return (a.folder || "").localeCompare(b.folder || "");
-        if (a.subFolder !== b.subFolder) return (a.subFolder || "").localeCompare(b.subFolder || "");
-        return a.precedence - b.precedence;
-    }));
+    // Sort by precedence (lowest precedence numerical value = highest priority)
+    [standardRibbons, medals, citations].forEach(arr => arr.sort((a, b) => a.precedence - b.precedence));
 
-    let groupFirstAddedIndex = {};
-    selectedRack.forEach((item, globalIdx) => {
-        if (item.type === 'Citation' && item.folder && !(item.folder in groupFirstAddedIndex)) {
-            groupFirstAddedIndex[item.folder] = globalIdx;
-        }
-    });
-
-    citations.sort((a, b) => {
-        const groupA = a.folder || "";
-        const groupB = b.folder || "";
-
-        if (groupA !== groupB) {
-            const orderA = groupFirstAddedIndex[groupA] !== undefined ? groupFirstAddedIndex[groupA] : 999;
-            const orderB = groupFirstAddedIndex[groupB] !== undefined ? groupFirstAddedIndex[groupB] : 999;
-            return orderA - orderB;
-        }
-
-        return a.precedence - b.precedence;
-    });
-
-    const LEFT_POCKET_CENTER_X = 26;   
-    const RIGHT_POCKET_CENTER_X = 102; 
-
-    const RED_LINE_Y = 33;    
-    const GREEN_LINE_Y = 35;  
-    const BLUE_LINE_Y = 35;   
-
-    // --- DETERMINE RACK MODES ---
-    // --- DETERMINE RACK MODES ---
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
     const hasCitations = citations.length > 0;
 
-    // Trigger merged Right-Pocket Rack whenever Medals are present alongside Citations and/or Ribbons
-    const isMergedRightRack = hasMedals && (hasCitations || hasRibbons);
+    // Viewport relative pocket coordinates
+    const LEFT_POCKET_X = 26;   // Viewer's Left (Wearer's Right Pocket)
+    const RIGHT_POCKET_X = 102; // Viewer's Right (Wearer's Left Pocket)
+    const BASELINE_Y = 35;       // Standard pocket seam baseline
 
-    const RIBBON_LINE_Y = BLUE_LINE_Y;
-    const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
+    // --- POCKET MAPPING ENGINE (MCO 1020.34H) ---
+    let medalPocketX = RIGHT_POCKET_X;
+    let ribbonPocketX = RIGHT_POCKET_X;
+    let citationPocketX = LEFT_POCKET_X;
 
-    const MEDAL_LINE_Y = hasRibbons ? GREEN_LINE_Y : BLUE_LINE_Y;
-    const MEDAL_CENTER_X = hasRibbons ? LEFT_POCKET_CENTER_X : RIGHT_POCKET_CENTER_X;
+    const isAllThreePresent = hasRibbons && hasMedals && hasCitations;
+
+    if (hasMedals && (hasRibbons || hasCitations)) {
+        medalPocketX = LEFT_POCKET_X;
+        ribbonPocketX = RIGHT_POCKET_X;
+        citationPocketX = isAllThreePresent ? RIGHT_POCKET_X : LEFT_POCKET_X;
+    } else if (hasRibbons && hasCitations && !hasMedals) {
+        ribbonPocketX = RIGHT_POCKET_X;
+        citationPocketX = LEFT_POCKET_X;
+    } else if (hasMedals && !hasRibbons && !hasCitations) {
+        medalPocketX = RIGHT_POCKET_X;
+    }
 
     // =========================================================================
-    // MODE A: MERGED RACK ON RIGHT POCKET (Citations + Ribbons flowing continuously)
+    // 1. RENDER RIBBONS & CITATIONS
     // =========================================================================
-    if (isMergedRightRack) {
-        // Build unified list: Citations at bottom (lowest precedence), Ribbons above
-        const unifiedRightRack = [
+    if (isAllThreePresent) {
+        // --- MERGED CONTINUOUS RACK (RIGHT POCKET) ---
+        const unifiedRack = [
             ...citations.map(c => ({ ...c, isCitationItem: true })),
             ...standardRibbons.map(r => ({ ...r, isCitationItem: false }))
         ];
 
         const MAX_ROW_WIDTH = 48; // 3 ribbons (48px) or 4 citations (48px)
-        const RIBBON_HEIGHT = 4;
+        const ROW_HEIGHT = 4;
 
         let rows = [[]];
         let currentRowWidth = 0;
 
-        // Pack items continuously into rows
-        unifiedRightRack.forEach(item => {
+        unifiedRack.forEach(item => {
             const itemWidth = item.isCitationItem ? 12 : 16;
-
             if (currentRowWidth + itemWidth > MAX_ROW_WIDTH) {
                 rows.push([]);
                 currentRowWidth = 0;
             }
-
-            rows[rows.length - 1].push({
-                ...item,
-                width: itemWidth,
-                height: RIBBON_HEIGHT
-            });
-
+            rows[rows.length - 1].push({ ...item, width: itemWidth, height: ROW_HEIGHT });
             currentRowWidth += itemWidth;
         });
 
-        // Row 0 rests on RIBBON_LINE_Y; subsequent rows build UPWARDS
+        // Row 0 rests on BASELINE_Y; rows build UPWARDS
         rows.forEach((rowItems, rowIndex) => {
             const rowWidth = rowItems.reduce((sum, item) => sum + item.width, 0);
-            const startX = RIBBON_CENTER_X - (rowWidth / 2);
-            
+            const startX = RIGHT_POCKET_X - (rowWidth / 2);
             let currentX = startX;
-            const yOffset = rowIndex * RIBBON_HEIGHT;
-            const baseTop = RIBBON_LINE_Y - RIBBON_HEIGHT - yOffset + 1;
+
+            const yOffset = rowIndex * ROW_HEIGHT;
+            const baseTop = BASELINE_Y - ROW_HEIGHT - yOffset + 1;
 
             rowItems.forEach((item, itemIndex) => {
                 const img = document.createElement('img');
@@ -931,109 +847,116 @@ function renderPreview() {
         });
 
     } else {
-        // =========================================================================
-        // MODE B: INDEPENDENT SEPARATE RACKS (No Medals present)
-        // =========================================================================
-        const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
-        const CITATION_LINE_Y = GREEN_LINE_Y;
+        // --- SEPARATE INDEPENDENT RACKS ---
+        
+        // Render Standard Ribbons
+        if (hasRibbons) {
+            const ribbonWidth = 16;
+            const ribbonHeight = 4;
+            standardRibbons.forEach((ribbon, index) => {
+                const img = document.createElement('img');
+                img.src = ribbon.activeImage;
+                img.className = 'rack-item ribbon-item';
+                
+                const { row, col, itemsInThisRow } = getGridLayout(index, standardRibbons.length, 3);
+                const rowWidth = itemsInThisRow * ribbonWidth;
+                const startX = ribbonPocketX - (rowWidth / 2); 
+                const baseLeft = startX + (col * ribbonWidth);
+                
+                const yOffset = row * ribbonHeight;
+                const baseTop = BASELINE_Y - ribbonHeight - yOffset + 1; 
+                
+                img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
+                img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
+                img.style.width = `${ribbonWidth}px`; 
+                img.style.height = `${ribbonHeight}px`; 
+                img.style.zIndex = 500 - index;
+                
+                if (!isRibbonRackLocked) {
+                    makeCategoryDraggable(img, 'ribbons');
+                } else {
+                    makeIndividualDraggable(img, ribbon);
+                }
+                img.ondblclick = () => removeFromRack(ribbon.id);
+                ribbonsContainer.appendChild(img);
+            });
+        }
 
-        // --- RENDER SEPARATE STANDARD RIBBONS ---
-        const ribbonWidth = 16;
-        const ribbonHeight = 4;
-        standardRibbons.forEach((ribbon, index) => {
-            const img = document.createElement('img');
-            img.src = ribbon.activeImage;
-            img.className = 'rack-item ribbon-item';
-            
-            const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
-            const rowWidth = itemsInThisRow * ribbonWidth;
-            const startX = RIBBON_CENTER_X - (rowWidth / 2); 
-            const baseLeft = startX + (col * ribbonWidth);
-            const yOffset = (totalRows - 1 - row) * ribbonHeight;
-            const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset + 1; 
-            
-            img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
-            img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
-            img.style.width = `${ribbonWidth}px`; 
-            img.style.height = `${ribbonHeight}px`; 
-            img.style.zIndex = 500 - index;
-            
-            if (!isRibbonRackLocked) {
-                makeCategoryDraggable(img, 'ribbons');
-            } else {
-                makeIndividualDraggable(img, ribbon);
-            }
-            img.ondblclick = () => removeFromRack(ribbon.id);
-            ribbonsContainer.appendChild(img);
-        });
+        // Render Citations
+        if (hasCitations) {
+            const citationWidth = 12;
+            const citationHeight = 4;
+            citations.forEach((citation, index) => {
+                const img = document.createElement('img');
+                img.src = citation.activeImage;
+                img.className = 'rack-item ribbon-item';
+                
+                const { row, col, itemsInThisRow } = getGridLayout(index, citations.length, 4);
+                const rowWidth = itemsInThisRow * citationWidth;
+                const startX = citationPocketX - (rowWidth / 2);
+                const baseLeft = startX + (col * citationWidth);
+                
+                const yOffset = row * citationHeight;
+                const baseTop = BASELINE_Y - citationHeight - yOffset + 1;
+                
+                img.style.left = Math.round(baseLeft + citationsOffsetX) + 'px'; 
+                img.style.top = Math.round(baseTop + citationsOffsetY) + 'px';
+                img.style.width = `${citationWidth}px`; 
+                img.style.height = `${citationHeight}px`; 
+                img.style.zIndex = 500 - index;
+                
+                if (!isCitationRackLocked) {
+                    makeCategoryDraggable(img, 'citations');
+                } else {
+                    makeIndividualDraggable(img, citation);
+                }
+                img.ondblclick = () => removeFromRack(citation.id);
+                citationsContainer.appendChild(img);
+            });
+        }
+    }
 
-        // --- RENDER SEPARATE CITATIONS ---
-        const citationWidth = 12;
-        const citationHeight = 4;
-        citations.forEach((citation, index) => {
+    // =========================================================================
+    // 2. RENDER MEDALS
+    // =========================================================================
+    if (hasMedals) {
+        const medalSpacing = 6; 
+        const ribbonWidthOnly = 16; 
+
+        medals.forEach((medal, index) => {
             const img = document.createElement('img');
-            img.src = citation.activeImage;
-            img.className = 'rack-item ribbon-item';
+            img.src = medal.activeImage;
+            img.className = 'rack-item medal-item';
             
-            const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, citations.length, 4);
-            const rowWidth = itemsInThisRow * citationWidth;
-            const startX = CITATION_CENTER_X - (rowWidth / 2);
-            const baseLeft = startX + (col * citationWidth);
-            const yOffset = (totalRows - 1 - row) * citationHeight;
-            const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
+            const { row, col, itemsInThisRow } = getMedalLayout(index, medals.length);
+            const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
             
-            img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
-            img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
-            img.style.width = `${citationWidth}px`; 
-            img.style.height = `${citationHeight}px`; 
-            img.style.zIndex = 500 - index;
+            let startX = medalPocketX - (rowWidth / 2);
+            let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
             
-            if (!isCitationRackLocked) {
-                makeCategoryDraggable(img, 'ribbons');
+            img.style.left = Math.round(slotCenterX) + 'px';
+            img.style.transform = `translateX(-50%)`;
+            
+            const yOffset = row * medalSpacing;
+            const baseTop = BASELINE_Y - yOffset + medalsOffsetY;
+            img.style.top = Math.round(baseTop) + 'px';
+            
+            applySmartPadding(img, baseTop);
+            img.style.zIndex = 1000 - index; 
+            
+            if (!isMedalRackLocked) {
+                makeCategoryDraggable(img, 'medals');
             } else {
-                makeIndividualDraggable(img, citation);
+                makeIndividualDraggable(img, medal);
             }
-            img.ondblclick = () => removeFromRack(citation.id);
-            citationsContainer.appendChild(img);
+            img.ondblclick = () => removeFromRack(medal.id);
+            medalsContainer.appendChild(img);
         });
     }
-    // --- RENDER MEDALS ---
-    const medalSpacing = 6; 
-    const ribbonWidthOnly = 16; 
 
-    medals.forEach((medal, index) => {
-        const img = document.createElement('img');
-        img.src = medal.activeImage;
-        img.className = 'rack-item medal-item';
-        
-        const { row, col, itemsInThisRow, totalRows } = getMedalLayout(index, medals.length);
-        const rowWidth = ((itemsInThisRow - 1) * medalSpacing) + ribbonWidthOnly; 
-        
-        let centerX = MEDAL_CENTER_X;
-        
-        let startX = centerX - (rowWidth / 2);
-        let slotCenterX = startX + (col * medalSpacing) + (ribbonWidthOnly / 2) + medalsOffsetX;
-        
-        img.style.left = Math.round(slotCenterX) + 'px';
-        img.style.transform = `translateX(-50%)`;
-        
-        const yOffset = (totalRows - 1 - row) * medalSpacing;
-        const baseTop = MEDAL_LINE_Y - yOffset + medalsOffsetY;
-        img.style.top = Math.round(baseTop) + 'px';
-        
-        applySmartPadding(img, baseTop);
-        img.style.zIndex = 1000 - index; 
-        
-        if (!isMedalRackLocked) {
-            makeCategoryDraggable(img, 'medals');
-        } else {
-            makeIndividualDraggable(img, medal);
-        }
-        img.ondblclick = () => removeFromRack(medal.id);
-        medalsContainer.appendChild(img);
-    });
-
-    // --- RENDER BADGES ---
+    // =========================================================================
+    // 3. RENDER BADGES
+    // =========================================================================
     badges.forEach(badge => {
         const img = document.createElement('img');
         img.src = badge.activeImage;
@@ -1055,18 +978,15 @@ function makeCategoryDraggable(el, category) {
     let startX, startY;
     let isDraggingActive = false;
 
-    // Prevents the native browser behavior of "ghost dragging" image files
     el.ondragstart = (e) => e.preventDefault();
 
     function dragStart(e) {
-        // Only allow left-clicks or primary touch contacts
         if (e.button && e.button !== 0) return;
         
         e.preventDefault();
         e.stopPropagation();
         isDraggingActive = true;
 
-        // Lock all subsequent pointer events to this element, even if the mouse moves off of it
         try { el.setPointerCapture(e.pointerId); } catch (err) {}
 
         startX = e.clientX; 
@@ -1077,7 +997,11 @@ function makeCategoryDraggable(el, category) {
         el.addEventListener('pointercancel', dragEnd);
         el.addEventListener('lostpointercapture', dragEnd);
 
-        const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
+        const items = document.querySelectorAll(
+            category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : 
+            category === 'citations' ? '.ribbon-item:not(.indiv-unlocked)' : 
+            '.ribbon-item:not(.indiv-unlocked)'
+        );
         items.forEach(img => {
             img._exactX = img._exactX !== undefined ? img._exactX : parseFloat(img.style.left);
             img._exactY = img._exactY !== undefined ? img._exactY : parseFloat(img.style.top);
@@ -1097,9 +1021,15 @@ function makeCategoryDraggable(el, category) {
             medalsOffsetX += dx; medalsOffsetY += dy;
         } else if (category === 'ribbons') {
             ribbonsOffsetX += dx; ribbonsOffsetY += dy;
+        } else if (category === 'citations') {
+            citationsOffsetX += dx; citationsOffsetY += dy;
         }
 
-        const items = document.querySelectorAll(category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : '.ribbon-item:not(.indiv-unlocked)');
+        const items = document.querySelectorAll(
+            category === 'medals' ? '.medal-item:not(.indiv-unlocked)' : 
+            category === 'citations' ? '.ribbon-item:not(.indiv-unlocked)' : 
+            '.ribbon-item:not(.indiv-unlocked)'
+        );
         items.forEach(img => {
             img._exactX += dx;
             img._exactY += dy;
@@ -1177,6 +1107,7 @@ function makeIndividualDraggable(el, awardObj) {
 
     el.onpointerdown = dragStart;
 }
+
 // ==========================================
 // ROBLOX OAUTH & EXPORT ENGINE
 // ==========================================
