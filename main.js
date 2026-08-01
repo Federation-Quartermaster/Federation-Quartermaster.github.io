@@ -843,10 +843,13 @@ function renderPreview() {
     const BLUE_LINE_Y = 35;   
 
     // --- DETERMINE RACK MODES ---
+    // --- DETERMINE RACK MODES ---
     const hasRibbons = standardRibbons.length > 0;
     const hasMedals = medals.length > 0;
     const hasCitations = citations.length > 0;
-    const isAllThreePresent = hasRibbons && hasMedals && hasCitations;
+
+    // Trigger merged Right-Pocket Rack whenever Medals are present alongside Citations and/or Ribbons
+    const isMergedRightRack = hasMedals && (hasCitations || hasRibbons);
 
     const RIBBON_LINE_Y = BLUE_LINE_Y;
     const RIBBON_CENTER_X = RIGHT_POCKET_CENTER_X;
@@ -855,10 +858,10 @@ function renderPreview() {
     const MEDAL_CENTER_X = hasRibbons ? LEFT_POCKET_CENTER_X : RIGHT_POCKET_CENTER_X;
 
     // =========================================================================
-    // MODE A: ALL 3 TYPES PRESENT -> COMBINED CONTINUOUS-FILL RACK (RIGHT POCKET)
+    // MODE A: MERGED RACK ON RIGHT POCKET (Citations + Ribbons flowing continuously)
     // =========================================================================
-    if (isAllThreePresent) {
-        // Citations at the bottom (lowest precedence), Ribbons above (higher precedence)
+    if (isMergedRightRack) {
+        // Build unified list: Citations at bottom (lowest precedence), Ribbons above
         const unifiedRightRack = [
             ...citations.map(c => ({ ...c, isCitationItem: true })),
             ...standardRibbons.map(r => ({ ...r, isCitationItem: false }))
@@ -870,7 +873,7 @@ function renderPreview() {
         let rows = [[]];
         let currentRowWidth = 0;
 
-        // Pack items into rows sequentially
+        // Pack items continuously into rows
         unifiedRightRack.forEach(item => {
             const itemWidth = item.isCitationItem ? 12 : 16;
 
@@ -888,15 +891,12 @@ function renderPreview() {
             currentRowWidth += itemWidth;
         });
 
-        // Row 0 is the BOTTOM row resting on RIBBON_LINE_Y.
-        // Higher row indices (1, 2, ...) build UPWARDS.
+        // Row 0 rests on RIBBON_LINE_Y; subsequent rows build UPWARDS
         rows.forEach((rowItems, rowIndex) => {
             const rowWidth = rowItems.reduce((sum, item) => sum + item.width, 0);
             const startX = RIBBON_CENTER_X - (rowWidth / 2);
             
             let currentX = startX;
-            
-            // Build upwards: row 0 sits at base line, row 1 sits 4px higher, etc.
             const yOffset = rowIndex * RIBBON_HEIGHT;
             const baseTop = RIBBON_LINE_Y - RIBBON_HEIGHT - yOffset + 1;
 
@@ -931,7 +931,71 @@ function renderPreview() {
         });
 
     } else {
-        // ... (Keep Mode B unchanged for separate racks)
+        // =========================================================================
+        // MODE B: INDEPENDENT SEPARATE RACKS (No Medals present)
+        // =========================================================================
+        const CITATION_CENTER_X = LEFT_POCKET_CENTER_X;
+        const CITATION_LINE_Y = GREEN_LINE_Y;
+
+        // --- RENDER SEPARATE STANDARD RIBBONS ---
+        const ribbonWidth = 16;
+        const ribbonHeight = 4;
+        standardRibbons.forEach((ribbon, index) => {
+            const img = document.createElement('img');
+            img.src = ribbon.activeImage;
+            img.className = 'rack-item ribbon-item';
+            
+            const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, standardRibbons.length, 3);
+            const rowWidth = itemsInThisRow * ribbonWidth;
+            const startX = RIBBON_CENTER_X - (rowWidth / 2); 
+            const baseLeft = startX + (col * ribbonWidth);
+            const yOffset = (totalRows - 1 - row) * ribbonHeight;
+            const baseTop = RIBBON_LINE_Y - ribbonHeight - yOffset + 1; 
+            
+            img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
+            img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
+            img.style.width = `${ribbonWidth}px`; 
+            img.style.height = `${ribbonHeight}px`; 
+            img.style.zIndex = 500 - index;
+            
+            if (!isRibbonRackLocked) {
+                makeCategoryDraggable(img, 'ribbons');
+            } else {
+                makeIndividualDraggable(img, ribbon);
+            }
+            img.ondblclick = () => removeFromRack(ribbon.id);
+            ribbonsContainer.appendChild(img);
+        });
+
+        // --- RENDER SEPARATE CITATIONS ---
+        const citationWidth = 12;
+        const citationHeight = 4;
+        citations.forEach((citation, index) => {
+            const img = document.createElement('img');
+            img.src = citation.activeImage;
+            img.className = 'rack-item ribbon-item';
+            
+            const { row, col, itemsInThisRow, totalRows } = getGridLayout(index, citations.length, 4);
+            const rowWidth = itemsInThisRow * citationWidth;
+            const startX = CITATION_CENTER_X - (rowWidth / 2);
+            const baseLeft = startX + (col * citationWidth);
+            const yOffset = (totalRows - 1 - row) * citationHeight;
+            const baseTop = CITATION_LINE_Y - citationHeight - yOffset + 1;
+            
+            img.style.left = Math.round(baseLeft + ribbonsOffsetX) + 'px'; 
+            img.style.top = Math.round(baseTop + ribbonsOffsetY) + 'px';
+            img.style.width = `${citationWidth}px`; 
+            img.style.height = `${citationHeight}px`; 
+            img.style.zIndex = 500 - index;
+            
+            if (!isCitationRackLocked) {
+                makeCategoryDraggable(img, 'ribbons');
+            } else {
+                makeIndividualDraggable(img, citation);
+            }
+            img.ondblclick = () => removeFromRack(citation.id);
+            citationsContainer.appendChild(img);
+        });
     }
     // --- RENDER MEDALS ---
     const medalSpacing = 6; 
