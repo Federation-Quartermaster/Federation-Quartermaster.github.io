@@ -799,28 +799,27 @@ function renderPreview() {
     const hasMedals = medals.length > 0;
     const hasCitations = citations.length > 0;
 
-    // Viewport relative pocket coordinates (from Viewer's perspective)
-    // NOTE: Wearer's Left = over the heart (Viewer's Right)
-    const WEARERS_RIGHT_X = 26;   // Viewer's Left 
-    const WEARERS_LEFT_X = 102;   // Viewer's Right 
-    const BASELINE_Y = 35;        // Standard pocket seam baseline
+    // Viewport relative pocket coordinates
+    const LEFT_POCKET_X = 26;   // Viewer's Left
+    const RIGHT_POCKET_X = 102; // Viewer's Right
+    const BASELINE_Y = 35;       // Standard pocket seam baseline
 
-    // --- POCKET MAPPING ENGINE (MCO 1020.34H CORRECTED) ---
-    // Default mapping: everything defaults to the Wearer's Left (Heart) unless bumped.
-    let medalPocketX = WEARERS_LEFT_X; 
-    let ribbonPocketX = WEARERS_LEFT_X; 
-    let citationPocketX = WEARERS_RIGHT_X; // Citations default to Wearer's right if standalone 
+    // --- POCKET MAPPING ENGINE (Original Restored Matrix) ---
+    let medalPocketX = RIGHT_POCKET_X;
+    let ribbonPocketX = RIGHT_POCKET_X;
+    let citationPocketX = LEFT_POCKET_X;
 
-    if (hasMedals) {
-        // Medals ALWAYS take priority on the Wearer's Left (102)
-        medalPocketX = WEARERS_LEFT_X;
-        // Ribbons/Citations get bumped to the Wearer's Right (26)
-        if (hasRibbons) ribbonPocketX = WEARERS_RIGHT_X;
-        if (hasCitations) citationPocketX = WEARERS_RIGHT_X;
-    } else if (hasRibbons && hasCitations) {
-        // No medals: Ribbons take the Wearer's Left (102), Citations take the Wearer's Right (26)
-        ribbonPocketX = WEARERS_LEFT_X;
-        citationPocketX = WEARERS_RIGHT_X;
+    const isAllThreePresent = hasRibbons && hasMedals && hasCitations;
+
+    if (hasMedals && (hasRibbons || hasCitations)) {
+        medalPocketX = LEFT_POCKET_X;
+        ribbonPocketX = RIGHT_POCKET_X;
+        citationPocketX = isAllThreePresent ? RIGHT_POCKET_X : LEFT_POCKET_X;
+    } else if (hasRibbons && hasCitations && !hasMedals) {
+        ribbonPocketX = RIGHT_POCKET_X;
+        citationPocketX = LEFT_POCKET_X;
+    } else if (hasMedals && !hasRibbons && !hasCitations) {
+        medalPocketX = RIGHT_POCKET_X;
     }
 
     // A merged continuous rack is needed ONLY when Ribbons and Citations share the same pocket
@@ -842,8 +841,11 @@ function renderPreview() {
         let currentRow = [];
         let currentWidth = 0;
 
-        // Pack items top-to-bottom sequentially based on width
-        unifiedRack.forEach(item => {
+        // PACKING FIX: Build from the BOTTOM UP (lowest precedence first)
+        // so the highest precedence items are forced into the incomplete top row.
+        const reversedRack = [...unifiedRack].reverse();
+
+        reversedRack.forEach(item => {
             const itemWidth = item.isCitationItem ? 12 : 16;
             
             // If item exceeds max row width, push current row and start a new one
@@ -853,7 +855,8 @@ function renderPreview() {
                 currentWidth = 0;
             }
 
-            currentRow.push({ ...item, width: itemWidth });
+            // Unshift puts highest precedence on the left of the current row visually
+            currentRow.unshift({ ...item, width: itemWidth });
             currentWidth += itemWidth;
         });
 
@@ -861,18 +864,17 @@ function renderPreview() {
             rows.push(currentRow);
         }
 
-        const totalRows = rows.length;
-
+        // Now rows[0] is the bottom row (resting on the pocket). 
+        // rows[rows.length - 1] is the highest priority top row.
         rows.forEach((rowItems, rowIndex) => {
-            // Reverse Y indexing so row 0 sits on top, and bottom row rests on baseline (Y=35)
-            const displayRow = (totalRows - 1) - rowIndex; 
             const rowWidth = rowItems.reduce((sum, item) => sum + item.width, 0);
 
-            // Dynamically anchor to whichever pocket they share (will be Wearer's Right / 26)
+            // Dynamically anchor to whichever pocket they share
             const startX = ribbonPocketX - (rowWidth / 2);
             let currentX = startX;
 
-            const yOffset = displayRow * ROW_HEIGHT; 
+            // rowIndex 0 = bottom row (Y offset = 0)
+            const yOffset = rowIndex * ROW_HEIGHT; 
             const baseTop = BASELINE_Y - ROW_HEIGHT - yOffset + 1;
 
             rowItems.forEach((item, itemIndex) => {
