@@ -288,10 +288,11 @@
             const rect = {
                 x: Math.min(startX, currentX),
                 y: Math.min(startY, currentY),
-                w: Math.abs(currentX - startX),
-                h: Math.abs(currentY - startY)
+                // Add + 1 to width and height to include the boundary pixels
+                w: Math.abs(currentX - startX) + 1, 
+                h: Math.abs(currentY - startY) + 1
             };
-
+        
             if (rect.w > 0 && rect.h > 0) {
                 selections.push(rect);
             }
@@ -328,9 +329,11 @@
             if (isDrawing) {
                 const rx = Math.min(startX, currentX);
                 const ry = Math.min(startY, currentY);
-                const rw = Math.abs(currentX - startX);
-                const rh = Math.abs(currentY - startY);
-
+                
+                // Add + 1 to live-preview width and height as well
+                const rw = Math.abs(currentX - startX) + 1; 
+                const rh = Math.abs(currentY - startY) + 1;
+            
                 ctx.strokeStyle = '#f9e2af';
                 ctx.fillStyle = 'rgba(249, 226, 175, 0.3)';
                 ctx.beginPath();
