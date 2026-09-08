@@ -800,11 +800,11 @@ function renderPreview() {
     const hasCitations = citations.length > 0;
 
     // Viewport relative pocket coordinates
-    const LEFT_POCKET_X = 26;   // Viewer's Left
-    const RIGHT_POCKET_X = 102; // Viewer's Right
+    const LEFT_POCKET_X = 26;   // Viewer's Left (Wearer's Right Pocket)
+    const RIGHT_POCKET_X = 102; // Viewer's Right (Wearer's Left Pocket / Over the Heart)
     const BASELINE_Y = 35;       // Standard pocket seam baseline
 
-    // --- POCKET MAPPING ENGINE (Original Restored Matrix) ---
+    // --- POCKET MAPPING ENGINE (Updated Flipped Matrix) ---
     let medalPocketX = RIGHT_POCKET_X;
     let ribbonPocketX = RIGHT_POCKET_X;
     let citationPocketX = LEFT_POCKET_X;
@@ -812,13 +812,17 @@ function renderPreview() {
     const isAllThreePresent = hasRibbons && hasMedals && hasCitations;
 
     if (hasMedals && (hasRibbons || hasCitations)) {
-        medalPocketX = LEFT_POCKET_X;
-        ribbonPocketX = RIGHT_POCKET_X;
-        citationPocketX = isAllThreePresent ? RIGHT_POCKET_X : LEFT_POCKET_X;
+        // FLIPPED LOGIC: Medals stay anchored over the heart (Viewer's Right / X=102)
+        // Ribbons get bumped to the Wearer's Right (Viewer's Left / X=26) to merge with Citations
+        medalPocketX = RIGHT_POCKET_X;
+        ribbonPocketX = LEFT_POCKET_X;
+        citationPocketX = LEFT_POCKET_X; 
     } else if (hasRibbons && hasCitations && !hasMedals) {
+        // Standard Ribbon & Citation layout (No Medals)
         ribbonPocketX = RIGHT_POCKET_X;
         citationPocketX = LEFT_POCKET_X;
     } else if (hasMedals && !hasRibbons && !hasCitations) {
+        // Standalone Medals
         medalPocketX = RIGHT_POCKET_X;
     }
 
