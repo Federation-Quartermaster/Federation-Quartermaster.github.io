@@ -324,6 +324,9 @@ async function fetchAndLoadUserHeadshot() {
     const usernameInput = rawInput.toLowerCase(); 
     const statusDiv = document.getElementById('headshot-status');
     
+    // REPLACE THIS with your actual Cloudflare Worker URL
+    const MY_PROXY_URL = "federation-quartermaster-github-io.irfgovernmentfundmanagemnent.workers.dev";
+    
     if (!usernameInput) {
         statusDiv.style.color = '#d9534f';
         statusDiv.textContent = "Please enter a Roblox username first.";
@@ -334,9 +337,9 @@ async function fetchAndLoadUserHeadshot() {
     statusDiv.textContent = "Resolving username to User ID...";
 
     try {
-        // Replaced roblox.com with roproxy.com and removed corsproxy.io
-        const userUrl = "https://users.roproxy.com/v1/usernames/users";
-        const userRes = await fetch(userUrl, {
+        // 1. Use YOUR proxy for the tricky POST request
+        const targetUserUrl = encodeURIComponent("https://users.roblox.com/v1/usernames/users");
+        const userRes = await fetch(`${MY_PROXY_URL}/?url=${targetUserUrl}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ usernames: [usernameInput], excludeBannedUsers: true })
@@ -352,7 +355,7 @@ async function fetchAndLoadUserHeadshot() {
         const userId = userData.data[0].id;
         statusDiv.textContent = `Found User ID (${userId}). Fetching headshot...`;
 
-        // Replaced roblox.com with roproxy.com and removed corsproxy.io
+        // 2. Keep RoProxy for the GET request (it handles GETs perfectly fine)
         const thumbUrl = `https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
         const thumbRes = await fetch(thumbUrl);
         const thumbData = await thumbRes.json();
@@ -371,7 +374,7 @@ async function fetchAndLoadUserHeadshot() {
             uploadedHeadshotObj = img;
             statusDiv.style.color = '#00ffcc';
             statusDiv.textContent = "Headshot successfully loaded!";
-            updateBadgePreview(); // Assuming this is defined elsewhere
+            updateBadgePreview();
         };
         img.onerror = function() {
             statusDiv.style.color = '#d9534f';
