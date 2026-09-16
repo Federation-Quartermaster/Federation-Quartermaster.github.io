@@ -3705,6 +3705,32 @@
             "ribbonImage": "MedalDatabase/Assets/Ribbons/Federation Wide - Awards/2. Order Of Vas_Ribbon.png",
             "badgeImage": null,
             "citationImage": null
+        },
+        {
+            "id": "fed_5scr_5",
+            "branch": "Federation Wide - Awards",
+            "folder": "",
+            "subFolder": "",
+            "name": "Summer Campaign Ribbon",
+            "precedence": 5,
+            "medalImage": null,
+            "ribbonImage": "MedalDatabase/Assets/Ribbons/Federation Wide - Awards/Gold/Summer Campaign_Ribbon.png",
+            "badgeImage": null,
+            "citationImage": null,
+            "tier": "Gold"
+        },
+        {
+            "id": "fed_5scr_5",
+            "branch": "Federation Wide - Awards",
+            "folder": "",
+            "subFolder": "",
+            "name": "Summer Campaign Ribbon",
+            "precedence": 5,
+            "medalImage": null,
+            "ribbonImage": "MedalDatabase/Assets/Ribbons/Federation Wide - Awards/Silver/Summer Campaign_Ribbon.png",
+            "badgeImage": null,
+            "citationImage": null,
+            "tier": "Silver"
         }
     ],
     "Medals": [
@@ -6729,6 +6755,32 @@
             "ribbonImage": null,
             "badgeImage": null,
             "citationImage": null
+        },
+        {
+            "id": "fed_5scm_5",
+            "branch": "Federation Wide - Awards",
+            "folder": "",
+            "subFolder": "",
+            "name": "Summer Campaign Medal",
+            "precedence": 5,
+            "medalImage": "MedalDatabase/Assets/Ribbons/Federation Wide - Awards/Gold/Summer Campaign_Medal.png",
+            "ribbonImage": null,
+            "badgeImage": null,
+            "citationImage": null,
+            "tier": "Gold"
+        },
+        {
+            "id": "fed_5scm_5",
+            "branch": "Federation Wide - Awards",
+            "folder": "",
+            "subFolder": "",
+            "name": "Summer Campaign Medal",
+            "precedence": 5,
+            "medalImage": "MedalDatabase/Assets/Ribbons/Federation Wide - Awards/Silver/Summer Campaign_Medal.png",
+            "ribbonImage": null,
+            "badgeImage": null,
+            "citationImage": null,
+            "tier": "Silver"
         }
     ],
     "Badges": [
