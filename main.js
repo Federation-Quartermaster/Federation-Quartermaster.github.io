@@ -325,7 +325,7 @@ async function fetchAndLoadUserHeadshot() {
     const statusDiv = document.getElementById('headshot-status');
     
     // REPLACE THIS with your actual Cloudflare Worker URL
-    const MY_PROXY_URL = "federation-quartermaster-github-io.irfgovernmentfundmanagemnent.workers.dev";
+    const MY_PROXY_URL = "https://federation-quartermaster-github-io.irfgovernmentfundmanagemnent.workers.dev";
     
     if (!usernameInput) {
         statusDiv.style.color = '#d9534f';
