@@ -334,8 +334,9 @@ async function fetchAndLoadUserHeadshot() {
     statusDiv.textContent = "Resolving username to User ID...";
 
     try {
-        const targetUserUrl = encodeURIComponent("https://users.roblox.com/v1/usernames/users");
-        const userRes = await fetch(`https://corsproxy.io/?url=${targetUserUrl}`, {
+        // Replaced roblox.com with roproxy.com and removed corsproxy.io
+        const userUrl = "https://users.roproxy.com/v1/usernames/users";
+        const userRes = await fetch(userUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ usernames: [usernameInput], excludeBannedUsers: true })
@@ -351,8 +352,9 @@ async function fetchAndLoadUserHeadshot() {
         const userId = userData.data[0].id;
         statusDiv.textContent = `Found User ID (${userId}). Fetching headshot...`;
 
-        const targetThumbUrl = encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`);
-        const thumbRes = await fetch(`https://corsproxy.io/?url=${targetThumbUrl}`);
+        // Replaced roblox.com with roproxy.com and removed corsproxy.io
+        const thumbUrl = `https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
+        const thumbRes = await fetch(thumbUrl);
         const thumbData = await thumbRes.json();
 
         if (!thumbData.data || thumbData.data.length === 0 || !thumbData.data[0].imageUrl) {
@@ -369,7 +371,7 @@ async function fetchAndLoadUserHeadshot() {
             uploadedHeadshotObj = img;
             statusDiv.style.color = '#00ffcc';
             statusDiv.textContent = "Headshot successfully loaded!";
-            updateBadgePreview();
+            updateBadgePreview(); // Assuming this is defined elsewhere
         };
         img.onerror = function() {
             statusDiv.style.color = '#d9534f';
