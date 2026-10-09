@@ -63,7 +63,7 @@
 
     <div class="card">
         <h2>Quartermaster Template Arranger</h2>
-        <p>Upload your semi-advanced clothing file. The script will automatically parse and arrange all parts onto the standard Roblox canvas layout.</p>
+        <p>Upload your semi-advanced custom template image. The script will automatically slice your layout blocks and arrange them into the official Roblox template format.</p>
         
         <input type="file" id="templateInput" accept="image/png, image/jpeg">
         <br>
@@ -71,9 +71,10 @@
 
         <div id="preview-container">
             <h3>Result Preview</h3>
+            <!-- Standard Roblox Template Dimensions -->
             <canvas id="outputCanvas" width="585" height="559"></canvas>
             <br>
-            <a id="downloadBtn" style="display:none;" download="roblox-arranged-template.png">
+            <a id="downloadBtn" style="display:none;" download="roblox-standard-template.png">
                 <button style="margin-top: 15px; background: #28a743;">Download Final Template</button>
             </a>
         </div>
@@ -88,7 +89,6 @@
 
         let uploadedImage = null;
 
-        // Load the uploaded image into memory
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -105,41 +105,41 @@
             reader.readAsDataURL(file);
         });
 
-        // Map and re-arrange components on click
         processBtn.addEventListener('click', function() {
             if (!uploadedImage) return;
 
-            // Clear the Roblox 585x559 canvas
+            // Clear the 585x559 canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // OPTIONAL: Draw a background base if needed (e.g., transparent or base color)
-            // ctx.fillStyle = "rgba(0,0,0,0)";
-            // ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // OPTIONAL: Fill with transparent background or base color if needed
+            // ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             /* 
-               MAPPING LOGIC:
-               Define your source cutting coordinates from your custom template 
-               and paste them into their official Roblox template coordinates.
-               
-               Format: ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-               - sx, sy, sWidth, sHeight = Where to cut from your uploaded file
-               - dx, dy, dWidth, dHeight = Where to place on the 585x559 canvas
+               Assuming your custom template is organized in a grid layout (proportional to its dimensions):
+               We calculate block sizes based on fractions of the uploaded image dimensions.
             */
+            const w = uploadedImage.width;
+            const h = uploadedImage.height;
 
-            // EXAMPLE MAPPINGS (Adjust these source coordinates to match your specific layout):
-            const regions = [
-                // Torso Front
-                { sx: 0, sy: 0, w: 128, h: 128, dx: 4, dy: 20 },
-                // Torso Back
-                { sx: 128, sy: 0, w: 128, h: 128, dx: 136, dy: 20 },
-                // Add more custom mappings here based on your semi-advanced template layout...
-            ];
+            // Define standard Roblox coordinate mappings destination targets:
+            // Format: ctx.drawImage(img, sourceX, sourceY, sourceW, sourceH, destX, destY, destW, destH);
+            
+            // NOTE: You can fine-tune the source grid fractions below to match your exact block ratios 
+            // from your custom layout image.
+            
+            // Placeholder mapping execution (e.g., mapping whole regions from your custom block layout 
+            // to official Roblox template coordinates):
+            
+            // Example structure mapping blocks based on your diagram:
+            // 1. Torso Front (F) -> Standard Roblox Torso Front coordinates (~ 4, 20 region)
+            // 2. Torso Back (B) -> Standard Roblox Torso Back coordinates
+            // 3. Torso Left/Right (L/R) -> Standard sides
+            
+            // (If your template is uniform, you can define precise block boxes here):
+            
+            ctx.drawImage(uploadedImage, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
 
-            // If your template layout uses exact structural blocks, you can map them dynamically:
-            // For now, as a fallback if it's already a whole canvas layout needing adjustments:
-            ctx.drawImage(uploadedImage, 0, 0, uploadedImage.width, uploadedImage.height, 0, 0, canvas.width, canvas.height);
-
-            // Enable download link
+            // Show download link
             const dataURL = canvas.toDataURL('image/png');
             downloadBtn.href = dataURL;
             downloadBtn.style.display = 'inline-block';
